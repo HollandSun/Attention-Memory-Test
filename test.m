@@ -1,10 +1,8 @@
 function p = AttentionShift_Step1
 
-
+%% load participant information
 s             = input('Enter Subject Number: ');
-startingBlock = input('Enter Version Number (1=SHHS, 2=HSSH, 3=SHSH, 4=HSHS): ');
-
-% 
+startingBlock = input('Enter Version Number (1=SHHS, 2=HSSH, 3=SHSH, 4=HSHS): ');% We have 4 condition this time
 block_orders = {'SHHS', 'HSSH', 'SHSH', 'HSHS'};
 p.block_order = block_orders{startingBlock};
 
@@ -16,10 +14,14 @@ p.Seed    = ClockRandSeed();
 
 diary(['Diaries/' num2str(s) 'diary.txt'])
 
-
+%%  assign imaging
 p = AssignImages(p);
+%   p.imagePool         : 120 number for this session
+%   p.imageSet          : struct for seta setb setc setd
+%   p.imageInfo         : for each image information(I aslo caculate the conditon and BI here)
+%   p.blockImages{1..4} : 每个block要呈现的图片编号
 
-
+%%  PTB初始化
 KbName('UnifyKeyNames');
 whichScreen = 0;
 background  = [0 0 0];
@@ -29,47 +31,46 @@ HideCursor(window);
 p.hz    = Screen('FrameRate', window);
 p.slack = Screen('GetFlipInterval', window) / 2;
 
-% 刺激位置
+% stimlus location
 p.Cx = windowRect(3) / 2;
 p.Cy = windowRect(4) / 2;
 
-% loc1=左，loc2=右，格式[cx cy cx cy]
+% loc1=左 left，loc2=右 right，格式[cx cy cx cy]
 p.loc1   = [p.Cx-300 p.Cy p.Cx-300 p.Cy];
 p.loc2   = [p.Cx+300 p.Cy p.Cx+300 p.Cy];
 p.center = [p.Cx p.Cy p.Cx p.Cy];
-
+% delete all loc3-8
 
 Screen('TextFont', window, 'Monaco');
 
-% 替代原来的p.stim{1-68}stim
-% 
-p.stimSize = 256;   % 像素，与generate_stimuli.m中img_size一致
+%% 图片尺寸配置 picture size markker!!!!
+% 如需修改呈现尺寸只改这一行 Here Holland
+p.stimSize = 256;   % !!!!! must be consist of generate_stimuli.m中img_size一致
 half       = p.stimSize / 2;
 p.dstRect1 = [p.loc1(1)-half, p.loc1(2)-half, p.loc1(1)+half, p.loc1(2)+half];
 p.dstRect2 = [p.loc2(1)-half, p.loc2(2)-half, p.loc2(1)+half, p.loc2(2)+half];
 
-% -noise 240
+%% load 载入noise图片 N=240
 p = LoadNoiseTextures(p, window);
 
-
+%% keyboard setup
 keyList = zeros(1, 256);
 keyList([KbName('z') KbName('m') KbName('q')]) = 1;
 ind  = GetKeyboardIndices;
 p.ind = ind(length(ind)-1);
 KbQueueCreate(p.ind, keyList);
 
-%% 4 run 
+%% Main Loop
 for run = 1:4
     p.run = run;
 
-    % load cue texture ----
+    % -载入本run的cue图片texture 
     p = LoadCueTextures(p, run, window);
 
-    % TrialSetup(p)，add more run
+    % trial setup
     p = TrialSetup(p, run);
 
-    % all initial(but still need more fro analyse convenience.) MMMMark
-    % here!!!
+    % inistialize
     p.CueDeadline              = zeros(1, p.NumTrials);
     p.TargetDeadline           = zeros(1, p.NumTrials);
     p.CueOnset.VBLOn           = zeros(1, p.NumTrials);
@@ -85,12 +86,12 @@ for run = 1:4
     p.ResponseTimes.Subtracted = zeros(1, p.NumTrials);
     p.Accurate                 = zeros(1, p.NumTrials);
 
-    % same for starting
+    % begin
     Screen('TextSize', window, 40);
     DrawFormattedText(window, 'Press the SPACE bar to Begin the Task', 'center', 'center', [255 255 255]);
     Screen('Flip', window);
 
-    while KbCheck; end
+    while KbCheck; end  % 先等所有按键松开，防止之前按着的键被误读
     while 1
         [keyIsDown, ~, keyCode] = KbCheck;
         keyCode = find(keyCode, 1);
@@ -102,15 +103,12 @@ for run = 1:4
     p.prevFlip = p.StartOfExp;
     p.trial    = 0;
 
-    %% for trail
+    %% trial loop for PTB
     for trial = 1:p.NumTrials
         p.trial = trial;
-        fprintf('Run %d | Begin Trial %d', run, trial);
-
-        %  PreStim不变（星号）
         p = PreStim(window, p);
 
-        %  PresentStream use DrawTexture to show the noise
+
         [p, exitTask] = PresentStream(window, p);
 
         if exitTask == 1
@@ -118,7 +116,7 @@ for run = 1:4
         end
     end
 
-    %% for accuracey
+    %% run结束
     Screen('Flip', window);
     WaitSecs(0.5);
     Screen('TextSize', window, 40);
@@ -133,7 +131,7 @@ for run = 1:4
     Screen('Flip', window);
     WaitSecs(4);
 
-    % clear some data 
+    %
     p_save = rmfield(p, {'noiseTextures', 'cueTextures', 'noisePool', 'noisePoolIdx'});
     save(['Data/S' num2str(s) 'Within_run' num2str(run) '.mat'], 'p_save');
     datestr(clock);
@@ -156,7 +154,7 @@ ListenChar(0);
 end
 
 
-% =========================================================================
+
 function p = AssignImages(p)
 % AssignImages  从240张图片中抽取120张，根据block_order分配至4个block
 
@@ -180,20 +178,21 @@ p.imageSet.b = shuffled(n_per_set+1   : n_per_set*2);
 p.imageSet.c = shuffled(n_per_set*2+1 : n_per_set*3);
 p.imageSet.d = shuffled(n_per_set*3+1 : n_per_set*4);
 
-% use 2 stragegy
+% ---- 根据block_order确定每个set的分配 ----
+% [encode_block, reexp_block]，行对应seta/b/c/d
+% SHHS/HSSH：回文结构
+% SHSH/HSHS：交替结构
 switch p.block_order
     case {'SHHS', 'HSSH'}
         assign = [1 4; 1 3; 2 3; 2 4];
     case {'SHSH', 'HSHS'}
         assign = [1 3; 1 4; 2 3; 2 4];
-    otherwise
-        error('AssignImages: 未知block_order: %s', p.block_order);
 end
 
 sets       = {p.imageSet.a, p.imageSet.b, p.imageSet.c, p.imageSet.d};
-block_types = p.block_order;   % 'S' or 'H' for trail type
+block_types = p.block_order;   % 第k个字符='S'或'H'
 
-% information for picturee
+% 生成每张图片的完整信息
 n_total = n_per_set * 4;
 info(n_total) = struct('stimNum', 0, 'cueType', 0, ...
                        'encodeBlock', 0, 'reexpBlock', 0, ...
@@ -211,7 +210,7 @@ for s = 1:4
         idx              = (s-1)*n_per_set + j;
         stim_num         = sets{s}(j);
         info(idx).stimNum     = stim_num;
-        info(idx).cueType     = 1 + (stim_num > n_total_each);  % 1=前120, 2=后120(animal or object)
+        info(idx).cueType     = 1 + (stim_num > n_total_each);  % 1=前120, 2=后120
         info(idx).encodeBlock = enc_blk;
         info(idx).reexpBlock  = reex_blk;
         info(idx).condition   = cond;
@@ -220,33 +219,24 @@ for s = 1:4
 end
 p.imageInfo = info;
 
-% block1/2：encoding ；block3/4：retreival
+
+% block1/2：encoding图片；block3/4：re-exposure图片
 p.blockImages = cell(1, 4);
 for blk = 1:4
-    enc_imgs       = [info([info.encodeBlock] == blk).stimNum];
-    reex_imgs      = [info([info.reexpBlock]  == blk).stimNum];
+    enc_imgs       = [info([info.encodeBlock] == blk).stimNum]; % encoding only could be 1 or 2 here
+    reex_imgs      = [info([info.reexpBlock]  == blk).stimNum]; % encoding only could be 3 or 4 here
+    % info(0,0,0...1,1,).stimNum a array for imaging
     p.blockImages{blk} = [enc_imgs, reex_imgs];
 end
-
-% 调
-fprintf('AssignImages: block_order=%s\n', p.block_order);
-cond_list = {'SS','HH','SH','HS'};
-for c = 1:4
-    mask   = strcmp({info.condition}, cond_list{c});
-    bi_val = unique([info(mask).BI]);
-    fprintf('  for %s: %d picture, BI=%d\n', cond_list{c}, sum(mask), bi_val);
 end
-end
-
 
 % =========================================================================
 function p = LoadNoiseTextures(p, window)
-% LoadNoiseTextures  载入全部240张noise图片texture（整个实验共用）
-%
-
+% LoadNoiseTextures  载入全部240张noise图片texture
 stim_root = 'stimuli';
 noise_dir = fullfile(stim_root, 'noise_images');
-N_NOISE   = 240;   % noise图片总数，与generate_stimuli.m中n_noise一致
+N_NOISE   = 240;  
+% ----------------------------------------------
 
 fprintf('Loading noise textures (%d images)...\n', N_NOISE);
 p.noiseTextures = zeros(1, N_NOISE);
@@ -254,9 +244,9 @@ for i = 1:N_NOISE
     img = imread(fullfile(noise_dir, sprintf('noise_%03d.png', i)));
     p.noiseTextures(i) = Screen('MakeTexture', window, img);
 end
-fprintf('Noise textures loaded.\n');
 
 
+% Initialize noise pool
 p.noisePool    = Shuffle(1:N_NOISE);
 p.noisePoolIdx = 1;
 end
@@ -265,12 +255,10 @@ end
 % =========================================================================
 function p = LoadCueTextures(p, run, window)
 % LoadCueTextures  载入当前run所需的60张cue图片texture
-
 stim_root = 'stimuli';
 cue_dir   = fullfile(stim_root, 'cue_images');
-% ------------------
 
-% releas cue texture
+% 释放上一个run的cue texture
 if isfield(p, 'cueTextures') && ~isempty(p.cueTextures)
     for i = 1:length(p.cueTextures)
         if p.cueTextures(i) > 0
@@ -279,14 +267,14 @@ if isfield(p, 'cueTextures') && ~isempty(p.cueTextures)
     end
 end
 
-% use a new noise pool（每个run独立随机）
+% 重置noise池（每个run独立随机）
 p.noisePool    = Shuffle(1:length(p.noiseTextures));
 p.noisePoolIdx = 1;
 
 image_ids     = p.blockImages{run};   % 本run的60张图片编号
 n_cue         = length(image_ids);
 
-fprintf('Loading cue textures for run %d (%d images)...\n', run, n_cue);
+
 p.cueTextures = zeros(1, n_cue);
 p.cueImageIDs = image_ids;
 
@@ -294,18 +282,29 @@ for i = 1:n_cue
     img = imread(fullfile(cue_dir, sprintf('cue_%03d.png', image_ids(i))));
     p.cueTextures(i) = Screen('MakeTexture', window, img);
 end
-fprintf('Cue textures loaded for run %d.\n', run);
 end
 
 
 % =========================================================================
 function [p, tex] = GetNoiseTex(p)
-% GetNoiseTex  从noise pool to call new noise texture 
+% GetNoiseTex  从noise索引池取下一张noise texture，池耗尽时自动reshuffle
+% 保证收尾衔接不重复
 
 if p.noisePoolIdx > length(p.noisePool)
-    p.noisePool    = Shuffle(1:length(p.noiseTextures));
+    last_idx = p.noisePool(end);   % 记录上一轮最后一个索引
+
+    new_pool = Shuffle(1:length(p.noiseTextures));
+
+    % 如果新池第一个和上一轮最后一个相同，随机找一个位置交换
+    if new_pool(1) == last_idx
+        swap_idx              = randi([2, length(new_pool)]);
+        new_pool([1 swap_idx]) = new_pool([swap_idx 1]);
+    end
+
+    p.noisePool    = new_pool;
     p.noisePoolIdx = 1;
 end
+
 tex            = p.noiseTextures(p.noisePool(p.noisePoolIdx));
 p.noisePoolIdx = p.noisePoolIdx + 1;
 end
@@ -313,21 +312,21 @@ end
 
 % =========================================================================
 function p = TrialSetup(p, run)
-% TrialSetup  为当前run生成所有trial参数， add more Location序列
-
+% TrialSetup  为当前run生成所有trial参数，预填Location序列
 
 p.NumTrials = 60;
 
-% time
+% ---- 时间参数 ----
 p.DistInterval = Shuffle([ones(1,20) ones(1,20)*3 ones(1,20)*5]);
 p.FrameRate    = 4;
 p.FrameTime    = 1000 / p.FrameRate;   % ms
 
-% for the picute time !!!!!!!!!!!!!!!!! Markkkkkkkkkkk here
+% cue picuture time
 p.CueFrameTime = 250;   % ms
 
-% hiftCues：
-p.ShiftCues = zeros(1, p.NumTrials);
+% ShiftCues：由当前block类型决定80/20比例 
+
+p.ShiftCues = zeros(1, p.NumTrials); %2 for shiftl; 1 for hold
 if p.block_order(run) == 'S'
     p.ShiftCues(p.DistInterval==1) = Shuffle([ones(1,16)*2 ones(1,4)]);
     p.ShiftCues(p.DistInterval==3) = Shuffle([ones(1,16)*2 ones(1,4)]);
@@ -339,76 +338,101 @@ else   % 'H'
 end
 
 
-block_imgs  = Shuffle(p.blockImages{run});   % 60张，随机顺序
-enc_stims   = [p.imageInfo([p.imageInfo.encodeBlock] == run).stimNum];
-is_encoding = ismember(block_imgs, enc_stims);
 
 
-sides = Shuffle([ones(1,30) ones(1,30)*2]);   % 1=left, 2=right
-
-
-p.Cues              = sides;
-p.StartingLocations = sides;
-p.StartingLocations(2:60) = sides(1:59);
-
-%  trial-level 
+block_imgs = Shuffle(p.blockImages{run});   %
 p.StimulusNumber = block_imgs;
-p.Exposure       = ones(1, p.NumTrials);         % 1=encoding
-p.Exposure(~is_encoding) = 2;                    % 2=re-exposure
-p.Condition      = repmat({''}, 1, p.NumTrials); % encoding时为空
 
-for t = 1:p.NumTrials
-    if ~is_encoding(t)
+% encoding（block1/2）， retreival（block3/4）
+if run <= 2
+    p.Exposure = ones(1, p.NumTrials);   
+else
+    p.Exposure = ones(1, p.NumTrials)*2;  
+end
+
+% Condition：encoding block全为空，re-exposure block SS/HH/SH/HS
+p.Condition = repmat({''}, 1, p.NumTrials);
+if run > 2
+    for t = 1:p.NumTrials
         idx = find([p.imageInfo.stimNum] == block_imgs(t), 1);
         p.Condition{t} = p.imageInfo(idx).condition;
     end
 end
 
-p.CueType = zeros(1, p.NumTrials);
+
+p.CueType = 1 + (block_imgs > 120);   % 前120→1，后120→2
+
+
+%   cueType=1（前120）对应左侧，cueType=2（后120）对应右侧
+%   H trial（hold）：cue图片出现在cueType指示的那侧
+%   S trial（shift）：cue图片出现在cueType指示的对侧
+%   cue图片、fix点（星号）、response window全奇/偶stream → 全在imageLocation那侧
+%   另一侧 → 随机数字stream
+
+imageLocation = zeros(1, p.NumTrials);
 for t = 1:p.NumTrials
-    idx = find([p.imageInfo.stimNum] == block_imgs(t), 1);
-    p.CueType(t) = p.imageInfo(idx).cueType;
+    if p.ShiftCues(t) == 1   % hold trial：和cueType指示侧一致
+        imageLocation(t) = p.CueType(t);
+    else                      % shift trial：cueType指示的对侧
+        imageLocation(t) = 3 - p.CueType(t);   % 1→2, 2→1
+    end
 end
 
-%  Response（odd/even）：randomlized，not realted to the cueType
+% StartingLocations：trial t开始时fix点位置（即本trial的imageLocation）
+% Cues：本trial的cue方向（同imageLocation）
+p.Cues              = imageLocation;
+p.StartingLocations = imageLocation;
+p.StartingLocations(2:60) = imageLocation(1:59);  % 保留原代码结构
+
+% ---- Response（奇/偶）：随机，与cueType无关 ----
 p.Response    = Shuffle([ones(1,p.NumTrials/2) ones(1,p.NumTrials/2)*2]);
 p.TargetStart = zeros(1, p.NumTrials);
 p.CueStart    = zeros(1, p.NumTrials);
 
+% ---- 初始化Location序列 ----
 p.Location1 = cell(1, p.NumTrials);
 p.Location2 = cell(1, p.NumTrials);
 
-% 逐trial填充
+% ---- 逐trial填充 ----
 for t = 1:p.NumTrials
-    n_pre      = p.DistInterval(t) * p.FrameRate;
-    cue_frame  = n_pre + 1;
-    resp_start = n_pre + 2;
-    resp_end   = n_pre + 9;
-    total_len  = n_pre + 9;
+    n_pre      = p.DistInterval(t) * p.FrameRate; % noise frame
+    cue_frame  = n_pre + 1; % cue帧在序列中的位置
+    resp_start = n_pre + 2; % response window第一帧
+    resp_end   = n_pre + 9; % response window最后一帧（共8帧）
+    total_len  = n_pre + 9; % 整个序列总长度
 
     loc1 = zeros(1, total_len);
     loc2 = zeros(1, total_len);
 
-    % cue前noise
+    % cue前noise帧
     for f = 1:n_pre
         [p, loc1(f)] = GetNoiseTex(p);
         [p, loc2(f)] = GetNoiseTex(p);
     end
 
-    % cue
+    % cue帧：cue图片出现在imageLocation那侧，另一侧noise
+    % 干扰侧noise不能和该侧前一帧（cue前最后一帧）相同
     cue_tex_pos = find(p.cueImageIDs == block_imgs(t), 1);
     cue_tex     = p.cueTextures(cue_tex_pos);
     [p, noise_cue] = GetNoiseTex(p);
 
-    if p.StartingLocations(t) == 1
+    if imageLocation(t) == 1   % cue图片在左
+        % 干扰侧是右侧，检查noise_cue不与loc2前一帧重复
+        while noise_cue == loc2(n_pre)
+            [p, noise_cue] = GetNoiseTex(p);
+        end
         loc1(cue_frame) = cue_tex;
         loc2(cue_frame) = noise_cue;
-    else
+    else                        % cue图片在右
+        % 干扰侧是左侧，检查noise_cue不与loc1前一帧重复
+        while noise_cue == loc1(n_pre)
+            [p, noise_cue] = GetNoiseTex(p);
+        end
         loc2(cue_frame) = cue_tex;
         loc1(cue_frame) = noise_cue;
     end
 
-    % Response window
+    % Response window 
     if p.Response(t) == 1
         RDig = [1 3 5 7];
     else
@@ -419,18 +443,19 @@ for t = 1:p.NumTrials
         done    = 1;
         ShufDig = Shuffle([RDig RDig]);
         for q = 2:length(ShufDig)
-            if ShufDig(q) == ShufDig(q-1)
+            if ShufDig(q) == ShufDig(q-1) % any repeat?
                 done = 0;
             end
         end
         if done; break; end
     end
 
-
-    if p.Cues(t) == 1
+    % 全奇/偶stream出现在imageLocation那侧，另一侧随机数字1-8
+    % imageLocation(t)已在上方计算，与Cues(t)一致
+    if imageLocation(t) == 1   % 目标在左
         loc1(resp_start:resp_end) = ShufDig;
         loc2(resp_start:resp_end) = randi(8, 1, 8);
-    else
+    else                        % 目标在右
         loc2(resp_start:resp_end) = ShufDig;
         loc1(resp_start:resp_end) = randi(8, 1, 8);
     end
@@ -443,9 +468,10 @@ end
 end
 
 
-% =========================================================================
+
 function p = PreStim(window, p)
-% PreStim  星号
+% PreStim  asterisk
+
 if p.StartingLocations(p.trial) == 1
     DrawFormattedText(window, ' * ', 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.loc1);
 elseif p.StartingLocations(p.trial) == 2
@@ -463,6 +489,7 @@ end
 function [p, exitTask] = PresentStream(window, p)
 % PresentStream  呈现RSVP stream
 
+
 t        = p.trial;
 exitTask = 0;
 
@@ -472,30 +499,32 @@ for framenum = 1:length(p.Location1{t})
     val2 = p.Location2{t}(framenum);
 
     if framenum < p.CueStart(t)
-        % cue前noise
-        % [修改] DrawTexture替代DrawFormattedTex        Screen('DrawTexture', window, val1, [], p.dstRect1);
+        % cue前noise帧 
+        Screen('DrawTexture', window, val1, [], p.dstRect1);
         Screen('DrawTexture', window, val2, [], p.dstRect2);
 
     elseif framenum == p.CueStart(t)
-        % cue帧：calulate which one is the cue ，and other is the noise 
-   
+        % cue帧：目标侧是实验图片，干扰侧是noise 
         Screen('DrawTexture', window, val1, [], p.dstRect1);
         Screen('DrawTexture', window, val2, [], p.dstRect2);
 
     else
+        % response window：数字判断
         DrawFormattedText(window, num2str(val1), 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.loc1);
         DrawFormattedText(window, num2str(val2), 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.loc2);
     end
 
     DrawFormattedText(window, ' + ', 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.center);
 
-    % flip
+    % ---- flip时序 ----
+    % [修改] cue帧用CueFrameTime，其余帧用FrameTime
+    % [保留] TargetOnset记录逻辑不变
     if framenum == p.CueStart(t)
         p.CueDeadline(t) = p.streamFlip;
         [p.CueOnset.VBLOn(t), p.CueOnset.StimOn(t), p.CueOnset.FlipTime(t), p.CueMissed(t)] = ...
             Screen('Flip', window, p.streamFlip - p.slack);
         tmpFlip      = p.CueOnset.VBLOn(t);
-        p.streamFlip = tmpFlip + p.CueFrameTime * 0.001;   % [修改] cue帧用CueFrameTime
+        p.streamFlip = tmpFlip + p.CueFrameTime * 0.001;   %  cue帧用CueFrameTime
 
     elseif framenum == p.TargetStart(t)
         [p.TargetOnset.VBLOn(t), p.TargetOnset.StimOn(t), p.TargetOnset.FlipTime(t), p.TargetMissed(t)] = ...
@@ -514,7 +543,7 @@ DrawFormattedText(window, ' + ', 'center', 'center', [255 255 255], 10, 0, 0, 1,
 p.prevFlip = Screen('Flip', window, p.streamFlip - p.slack);
 KbQueueStop(p.ind);
 
-% for key press time 
+% 
 [Responded, firstpress] = KbQueueCheck(p.ind);
 if Responded
     keyCode       = find(firstpress == (min(firstpress(firstpress~=0))));
