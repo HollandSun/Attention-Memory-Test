@@ -43,31 +43,32 @@ end
 
 
  
-%% Tagert organize
- 
+%% Target organize - Animate first (1-120), Inanimate after (121-240)
 
 category_folders = dir(raw_dir);
 category_folders = category_folders([category_folders.isdir]);
 category_folders = category_folders(~ismember({category_folders.name}, {'.','..'}));
-category_folders = sort({category_folders.name});  % sort by name
+all_names = sort({category_folders.name});  % sort by name
 
- 
-all_targets = {};  % save them
- 
+% Separate Animate and Inanimate folders
+animate_folders   = all_names(contains(all_names, 'Animate') & ~contains(all_names, 'Inanimate'));
+inanimate_folders = all_names(contains(all_names, 'Inanimate'));
+
+% Animate first, then Inanimate
+ordered_folders = [animate_folders, inanimate_folders];
+
+all_targets = {};
 global_idx = 0;
-for cat = 1:4
-    cat_path = fullfile(raw_dir, category_folders{cat});
+
+for cat = 1:numel(ordered_folders)
+    cat_path = fullfile(raw_dir, ordered_folders{cat});
     
-    % sort by name
     img_files = [dir(fullfile(cat_path,'*.png')); ...
                  dir(fullfile(cat_path,'*.jpg')); ...
                  dir(fullfile(cat_path,'*.jpeg'))];
     
-
-    % sort by name
     [~, sort_idx] = sort({img_files.name});
     img_files = img_files(sort_idx);
-    
     
     for j = 1:numel(img_files)
         global_idx = global_idx + 1;
@@ -75,25 +76,23 @@ for cat = 1:4
         raw_path = fullfile(cat_path, img_files(j).name);
         img = imread(raw_path);
         
-        % Resize
         if size(img,1) ~= img_size || size(img,2) ~= img_size
             img = imresize(img, [img_size, img_size]);
         end
         
-        % change it to uint8
         if ~isa(img, 'uint8')
             img = uint8(img);
         end
         
-        % save target
         out_path = fullfile(target_dir, sprintf('target_%03d.png', global_idx));
         imwrite(img, out_path);
         
-        all_targets{global_idx} = img;  
+        all_targets{global_idx} = img;
     end
 end
- 
+
 n_targets = global_idx;
+
 
 
 
