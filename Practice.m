@@ -107,12 +107,11 @@ for run = 1:1
 
         p = PreStim(window, p);
 
-        % [修改] PresentStream内部改为DrawTexture，接口不变
+        % DrawTexture，接口不变
         [p, exitTask] = PresentStream(window, p);
 
-        % [删除] TrainingWord / TestWord调用
-
         if exitTask == 1
+            Screen('CloseAll');
             break
         end
     end
@@ -698,8 +697,7 @@ end
 
 % =========================================================================
 function p = TakeBreak(window, p)
-% TakeBreak  run间休息界面
-% [保留] 原代码逻辑完全不变
+
 
 Screen('TextSize', window, 40);
 acc = ceil(mean(p.Accurate) * 100);

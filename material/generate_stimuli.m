@@ -3,7 +3,7 @@
 clear; clc;
 
 img_size = 256;    % size remmeber adjust the PTB too, if changed
-SSNR     = 0.3;    % SSNR
+SSNR     = 0.4;    % SSNR
 n_noise  = 240;    % noise numbersss
 
 raw_dir  = 'AnimacySize';          % rawimages

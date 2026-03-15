@@ -112,6 +112,7 @@ for run = 1:4
         [p, exitTask] = PresentStream(window, p);
 
         if exitTask == 1
+            Screen('CloseAll');
             break
         end
     end
@@ -233,7 +234,7 @@ end
 % =========================================================================
 function p = LoadNoiseTextures(p, window)
 % LoadNoiseTextures  载入全部240张noise图片texture
-stim_root = 'stimuli';
+stim_root = fullfile('material', 'stimuli');
 noise_dir = fullfile(stim_root, 'noise_images');
 N_NOISE   = 240;  
 % ----------------------------------------------
@@ -255,7 +256,7 @@ end
 % =========================================================================
 function p = LoadCueTextures(p, run, window)
 % LoadCueTextures  载入当前run所需的60张cue图片texture
-stim_root = 'stimuli';
+stim_root = fullfile('material', 'stimuli');
 cue_dir   = fullfile(stim_root, 'cue_images');
 
 % 释放上一个run的cue texture
