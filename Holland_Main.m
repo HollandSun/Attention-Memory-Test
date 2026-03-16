@@ -236,13 +236,16 @@ for blk = 3:4
     blk1_hold  = Shuffle(blk1_hold);
     blk2_hold  = Shuffle(blk2_hold);
 
-    % x+y=48 x=24 y=24
-    n_shift_each = n_shift_needed / 2;
-    n_hold_each  = n_hold_needed  / 2;
+    % 尽量各取一半，超出各自上限时从另一边补足
+    % shift：理想各取n_shift_needed/2，但受限于block1/2各自的shift数量
+    x = min(floor(n_shift_needed / 2), length(blk1_shift));   % block1能提供的shift数
+    y = n_shift_needed - x;                                    % 剩余从block2取
+    % hold：同理
+    xh = min(floor(n_hold_needed / 2), length(blk1_hold));    % block1能提供的hold数
+    yh = n_hold_needed - xh;                                   % 剩余从block2取
 
-
-    taken_shift = [blk1_shift(1:n_shift_each), blk2_shift(1:n_shift_each)];
-    taken_hold  = [blk1_hold(1:n_hold_each),   blk2_hold(1:n_hold_each)];
+    taken_shift = [blk1_shift(1:x),  blk2_shift(1:y)];
+    taken_hold  = [blk1_hold(1:xh),  blk2_hold(1:yh)];
 
     % 按ShiftCues顺序填入图片
     shift_pool = Shuffle(taken_shift);
@@ -309,13 +312,14 @@ end
 p.imageInfo = info(1:entry-1);
 end
 
-% =========================================================================
+
+
 function p = LoadNoiseTextures(p, window)
 % LoadNoiseTextures  载入全部240张noise图片texture
 stim_root = fullfile('material', 'stimuli');
 noise_dir = fullfile(stim_root, 'noise_images');
 N_NOISE   = 240;  
-% ----------------------------------------------
+
 
 fprintf('Loading noise textures (%d images)...\n', N_NOISE);
 p.noiseTextures = zeros(1, N_NOISE);
@@ -331,9 +335,8 @@ p.noisePoolIdx = 1;
 end
 
 
-% =========================================================================
 function p = LoadCueTextures(p, run, window)
-% LoadCueTextures  载入当前run所需的60张cue图片texture
+% LoadCueTextures  60 picture
 stim_root = fullfile('material', 'stimuli');
 cue_dir   = fullfile(stim_root, 'cue_images');
 
@@ -364,7 +367,7 @@ end
 end
 
 
-% ===========
+
 function [p, tex] = GetNoiseTex(p)
 % GetNoiseTex  从noise索引池取下一张noise texture，池耗尽时自动reshuffle
 % 保证收尾衔接不重复
@@ -389,9 +392,9 @@ p.noisePoolIdx = p.noisePoolIdx + 1;
 end
 
 
-% =========================================================================
+
 function p = TrialSetup(p, run)
-% TrialSetup  为当前run生成所有trial参数，预填Location序列
+
 
 p.NumTrials = 60;
 
