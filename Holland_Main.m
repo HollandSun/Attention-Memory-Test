@@ -426,12 +426,6 @@ end
 
 p.CueType = 1 + (block_imgs > 120);   % 前120(shift指令)→1，后120(hold指令)→2
 
-% 链式推导fix点和cue位置（仿照原代码结构）
-% startingPosition随机决定第一个trial的fix点
-% fix点在哪cue图片就在哪（imageLocation = fix点）
-% cueType决定correct_side（下一个fix点）：
-%   cueType=1(shift) → correct_side = fix点对侧，prev_Loc翻转
-%   cueType=2(hold)  → correct_side = fix点同侧，prev_Loc不变
 
 startingPosition = randi(2);
 imageLocation    = zeros(1, p.NumTrials);
@@ -574,7 +568,7 @@ for framenum = 1:length(p.Location1{t})
         Screen('DrawTexture', window, val2, [], p.dstRect2);
 
     elseif framenum == p.CueStart(t)
-        % cue帧：目标侧是实验图片，干扰侧是noise 
+        % cue帧目标侧是实验图片，干扰侧是noise 
         Screen('DrawTexture', window, val1, [], p.dstRect1);
         Screen('DrawTexture', window, val2, [], p.dstRect2);
 
@@ -586,9 +580,9 @@ for framenum = 1:length(p.Location1{t})
 
     DrawFormattedText(window, ' + ', 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.center);
 
-    % ---- flip时序 ----
-    % [修改] cue帧用CueFrameTime，其余帧用FrameTime
-    % [保留] TargetOnset记录逻辑不变
+    % flip
+    % cue帧用CueFrameTime，其余帧用FrameTime
+
     if framenum == p.CueStart(t)
         p.CueDeadline(t) = p.streamFlip;
         [p.CueOnset.VBLOn(t), p.CueOnset.StimOn(t), p.CueOnset.FlipTime(t), p.CueMissed(t)] = ...
@@ -685,6 +679,3 @@ end
 
 
 
-%%%
-%%   S总数：x + y = 20
-%%%  H总数：(50-x) + (50-y) = 80  → x + y = 20 同一个方程
