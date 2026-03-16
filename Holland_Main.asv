@@ -453,7 +453,7 @@ for w = 1:p.NumTrials
     end
 end
 
-p.CuesAppearLocation                   = imageLocation;
+p.Cues                    = imageLocation;
 p.StartingLocations       = startingPosition;
 p.StartingLocations(2:60) = correct_side(1:59);  % trial t的fix = 上一trial的correct_side
 
