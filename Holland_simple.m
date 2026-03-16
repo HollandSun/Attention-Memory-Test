@@ -203,23 +203,32 @@ end
 
 function p = AssignImages(p)
 
-n_total_each = 120;
-n_priming      = 24;    % 每个retrieval block的priming test数量
-n_priming_each = 12;    % priming test: 12 shift + 12 hold
-n_filler     = 36;    % new filler pictures per retrieval block
+n_total_each   = 120;
+n_priming      = 24;    % priming test per retrieval block
+n_priming_each = 12;    % 12 shift + 12 hold per retrieval block
+n_priming_all  = n_priming * 2;   % 48 priming images total, strictly reserved
 
 block_types = p.block_order;
 
-% 从前120和后120各自建立图片池
-pool_front = Shuffle(1:n_total_each);
-pool_back  = Shuffle((n_total_each+1):(n_total_each*2));
-front_idx  = 1;
-back_idx   = 1;
+%% save 48张priming pictue，and rest go to the filler pool
+priming_pool_front = Shuffle(1:n_total_each);
+priming_pool_back  = Shuffle((n_total_each+1):(n_total_each*2));
+% grab 24 for priming
+reserved_front = priming_pool_front(1:n_priming_all/2);   % 24张shift priming专用
+reserved_back  = priming_pool_back(1:n_priming_all/2);    % 24张hold priming专用
 
-blockImgs     = cell(1, 4);
-primingTrialIdx = cell(1, 4);   % 记录retrieval block中哪些trial是priming test
+% rest of them go to the filler pool
+filler_pool_front = priming_pool_front(n_priming_all/2+1:end);  % 96张shift filler
+filler_pool_back  = priming_pool_back(n_priming_all/2+1:end);   % 96张hold filler
 
+% priming pointer???
+priming_front_ptr = 1;
+priming_back_ptr  = 1;
 
+blockImgs       = cell(1, 4);
+primingTrialIdx = cell(1, 4);
+
+%% pari by pair
 for pair = 1:2
     enc_blk = (pair-1)*2 + 1;   % 1 或 3
     ret_blk = (pair-1)*2 + 2;   % 2 或 4
@@ -227,91 +236,72 @@ for pair = 1:2
     enc_sc = p.AllShiftCues{enc_blk};
     ret_sc = p.AllShiftCues{ret_blk};
 
-    %% encoding block：60 new trial
-    % according to the shiftcues, get the corresponding image
+    %% encoding block：从filler pool随机取
     enc_imgs = zeros(1, p.NumTrials);
     for t = 1:p.NumTrials
-        if enc_sc(t) == 2   % shift image<120
-            enc_imgs(t) = pool_front(front_idx);
-            front_idx   = front_idx + 1;
-        else                 % hold image >120
-            enc_imgs(t) = pool_back(back_idx);
-            back_idx    = back_idx + 1;
+        if enc_sc(t) == 2   % shift for filler_pool_front
+            enc_imgs(t) = filler_pool_front(randi(length(filler_pool_front)));
+        else                 % hold  from filler_pool_back
+            enc_imgs(t) = filler_pool_back(randi(length(filler_pool_back)));
         end
     end
     blockImgs{enc_blk} = enc_imgs;
 
-    % take the imags from encoding block
-    enc_shift_imgs = enc_imgs(enc_sc == 2);   
-    enc_hold_imgs  = enc_imgs(enc_sc == 1);  
+    %% retrieval block：12 shift priming + 12 hold priming + filler
+    priming_shift = reserved_front(priming_front_ptr : priming_front_ptr + n_priming_each - 1);
+    priming_hold  = reserved_back(priming_back_ptr   : priming_back_ptr  + n_priming_each - 1);
+    priming_front_ptr = priming_front_ptr + n_priming_each;
+    priming_back_ptr  = priming_back_ptr  + n_priming_each;
 
-    %% retrieval block：24 priming test + 36 new filler
-    ret_sc_shift = ret_sc == 2;   % 
-    ret_sc_hold  = ret_sc == 1;   % 
+    % filler get from the filler pool
+    n_ret_shift  = sum(ret_sc == 2);
+    n_ret_hold   = sum(ret_sc == 1);
+    n_fill_shift = n_ret_shift - n_priming_each;
+    n_fill_hold  = n_ret_hold  - n_priming_each;
 
-    % priming test stimlus： 12 shift + 12 hold
-    % get them from the encoding block
-    enc_shift_shuf = Shuffle(enc_shift_imgs);
-    enc_hold_shuf  = Shuffle(enc_hold_imgs);
-    priming_shift    = enc_shift_shuf(1:n_priming_each); % first shuffled 12  
-    priming_hold     = enc_hold_shuf(1:n_priming_each);  % first shuffled 12  
+    % shift filler
+    available_front = filler_pool_front(~ismember(filler_pool_front, priming_shift));
+    filler_shift    = available_front(randi(length(available_front), 1, n_fill_shift));
+    % hold filler
+    available_back = filler_pool_back(~ismember(filler_pool_back, priming_hold));
+    filler_hold    = available_back(randi(length(available_back), 1, n_fill_hold));
 
-    % filler
-    n_ret_shift = sum(ret_sc_shift);   % retrieval total shift trial
-    n_ret_hold  = sum(ret_sc_hold);    % retrieval total hold trial
-    % filler  = total sc - retrieval
-    n_fill_shift = n_ret_shift - n_priming_each;   % shift filler
-    n_fill_hold  = n_ret_hold  - n_priming_each;   % hold filler 
-
-    filler_shift = zeros(1, n_fill_shift);
-    for i = 1:n_fill_shift
-        filler_shift(i) = pool_front(front_idx);
-        front_idx = front_idx + 1;
-    end
-    filler_hold = zeros(1, n_fill_hold);
-    for i = 1:n_fill_hold
-        filler_hold(i) = pool_back(back_idx);
-        back_idx = back_idx + 1;
-    end
-
-    % shuffle retrieval test and filler
-    all_shift_pool = Shuffle([priming_shift, filler_shift]);
-    all_hold_pool  = Shuffle([priming_hold,  filler_hold]);
-
-    % recard retrieval test location
+    % 合并priming和filler，shuffle， track priming location
+    all_shift_pool   = [priming_shift, filler_shift];
+    all_hold_pool    = [priming_hold,  filler_hold];
     is_priming_shift = [true(1,n_priming_each), false(1,n_fill_shift)];
-    is_priming_hold  = [true(1,n_priming_each), false(1,n_fill_hold)]; % creat cell
-    perm_shift     = randperm(length(all_shift_pool)); % creat random seed index
-    perm_hold      = randperm(length(all_hold_pool)); % creat random seed index
-    all_shift_pool = all_shift_pool(perm_shift);
-    is_priming_shift = is_priming_shift(perm_shift); % shuffle them together  using the same index
-    all_hold_pool  = all_hold_pool(perm_hold);
-    is_priming_hold  = is_priming_hold(perm_hold); % shuffle them together using the same index
+    is_priming_hold  = [true(1,n_priming_each), false(1,n_fill_hold)];
+
+    perm_shift       = randperm(length(all_shift_pool));
+    perm_hold        = randperm(length(all_hold_pool)); % get a random seed index
+    all_shift_pool   = all_shift_pool(perm_shift);
+    is_priming_shift = is_priming_shift(perm_shift);
+    all_hold_pool    = all_hold_pool(perm_hold);
+    is_priming_hold  = is_priming_hold(perm_hold);
 
     ret_imgs   = zeros(1, p.NumTrials);
-    is_priming   = false(1, p.NumTrials);
+    is_priming = false(1, p.NumTrials);
     shift_ptr2 = 1;
     hold_ptr2  = 1;
-
-    % fullfill image number
+    % fullfill trial by trial and track
     for t = 1:p.NumTrials
-        if ret_sc(t) == 2   % shift trial
+        if ret_sc(t) == 2
             ret_imgs(t)  = all_shift_pool(shift_ptr2);
-            is_priming(t)  = is_priming_shift(shift_ptr2);
+            is_priming(t)= is_priming_shift(shift_ptr2);
             shift_ptr2   = shift_ptr2 + 1;
-        else                 % hold trial
+        else
             ret_imgs(t)  = all_hold_pool(hold_ptr2);
-            is_priming(t)  = is_priming_hold(hold_ptr2);
+            is_priming(t)= is_priming_hold(hold_ptr2);
             hold_ptr2    = hold_ptr2 + 1;
         end
     end
 
-    blockImgs{ret_blk}     = ret_imgs;
-    primingTrialIdx{ret_blk} = find(is_priming);   % priming test trial的索引
+    blockImgs{ret_blk}       = ret_imgs;
+    primingTrialIdx{ret_blk} = find(is_priming);
 end
 
 p.blockImages     = blockImgs;
-p.primingTrialIdx   = primingTrialIdx;
+p.primingTrialIdx = primingTrialIdx;
 
 %% generate imageInfo
 n_priming_total = n_priming * 2;   % 48 priming test
