@@ -213,12 +213,11 @@ block_types = p.block_order;
 %% save 48张priming pictue，and rest go to the filler pool
 priming_pool_front = Shuffle(1:n_total_each);
 priming_pool_back  = Shuffle((n_total_each+1):(n_total_each*2));
-
-% 前24张预留给priming（两个pair各12张shift priming）
+% grab 24 for priming
 reserved_front = priming_pool_front(1:n_priming_all/2);   % 24张shift priming专用
 reserved_back  = priming_pool_back(1:n_priming_all/2);    % 24张hold priming专用
 
-% 剩余图片进入filler pool
+% rest of them go to the filler pool
 filler_pool_front = priming_pool_front(n_priming_all/2+1:end);  % 96张shift filler
 filler_pool_back  = priming_pool_back(n_priming_all/2+1:end);   % 96张hold filler
 
@@ -240,43 +239,41 @@ for pair = 1:2
     %% encoding block：从filler pool随机取
     enc_imgs = zeros(1, p.NumTrials);
     for t = 1:p.NumTrials
-        if enc_sc(t) == 2   % shift → 从filler_pool_front随机取
+        if enc_sc(t) == 2   % shift for filler_pool_front
             enc_imgs(t) = filler_pool_front(randi(length(filler_pool_front)));
-        else                 % hold → 从filler_pool_back随机取
+        else                 % hold  from filler_pool_back
             enc_imgs(t) = filler_pool_back(randi(length(filler_pool_back)));
         end
     end
     blockImgs{enc_blk} = enc_imgs;
 
     %% retrieval block：12 shift priming + 12 hold priming + filler
-    % priming图片：从reserved pool取（严格不重复）
     priming_shift = reserved_front(priming_front_ptr : priming_front_ptr + n_priming_each - 1);
     priming_hold  = reserved_back(priming_back_ptr   : priming_back_ptr  + n_priming_each - 1);
     priming_front_ptr = priming_front_ptr + n_priming_each;
     priming_back_ptr  = priming_back_ptr  + n_priming_each;
 
-    % filler图片：从filler pool随机取（可重复，但不能和本pair的priming重复）
+    % filler get from the filler pool
     n_ret_shift  = sum(ret_sc == 2);
     n_ret_hold   = sum(ret_sc == 1);
     n_fill_shift = n_ret_shift - n_priming_each;
     n_fill_hold  = n_ret_hold  - n_priming_each;
 
-    % shift filler：从filler_pool_front随机取，排除本pair的priming
+    % shift filler
     available_front = filler_pool_front(~ismember(filler_pool_front, priming_shift));
     filler_shift    = available_front(randi(length(available_front), 1, n_fill_shift));
-
-    % hold filler：从filler_pool_back随机取，排除本pair的priming
+    % hold filler
     available_back = filler_pool_back(~ismember(filler_pool_back, priming_hold));
     filler_hold    = available_back(randi(length(available_back), 1, n_fill_hold));
 
-    % 合并priming和filler，shuffle，同时追踪priming位置
+    % 合并priming和filler，shuffle， track priming location
     all_shift_pool   = [priming_shift, filler_shift];
     all_hold_pool    = [priming_hold,  filler_hold];
     is_priming_shift = [true(1,n_priming_each), false(1,n_fill_shift)];
     is_priming_hold  = [true(1,n_priming_each), false(1,n_fill_hold)];
 
     perm_shift       = randperm(length(all_shift_pool));
-    perm_hold        = randperm(length(all_hold_pool));
+    perm_hold        = randperm(length(all_hold_pool)); % get a random seed index
     all_shift_pool   = all_shift_pool(perm_shift);
     is_priming_shift = is_priming_shift(perm_shift);
     all_hold_pool    = all_hold_pool(perm_hold);
@@ -286,7 +283,7 @@ for pair = 1:2
     is_priming = false(1, p.NumTrials);
     shift_ptr2 = 1;
     hold_ptr2  = 1;
-
+    % fullfill trial by trial and track
     for t = 1:p.NumTrials
         if ret_sc(t) == 2
             ret_imgs(t)  = all_shift_pool(shift_ptr2);
@@ -716,3 +713,26 @@ end
 %( o.o )    MATLAB is watching you...
 % > ^ <
 % ==================================================
+
+
+
+
+function seq = GenerateSeq(start_pt)
+% start_pt: 1 或 2（概念上的trial 0的correct_side）
+% 返回长度61的序列，seq(1)=start_pt，seq(2:61)是60个trial的correct_side/图片类型
+
+max_iter = 10000;
+for iter = 1:max_iter
+    % 随机生成60个trial的correct_side，强制30个1 30个2
+    core = Shuffle([ones(1,30), ones(1,30)*2]);
+    seq = [start_pt, core];  % 长度61
+    
+    % 统计相邻变化次数
+    changes = sum(diff(seq) ~= 0);  % 12或21的对数
+    
+    if changes == 48
+        return  % 满足约束，接受
+    end
+end
+error('GenerateSeq: 超过最大迭代次数，未找到满足条件的序列');
+end
