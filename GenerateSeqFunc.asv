@@ -120,3 +120,6 @@ seq = [start_pt, seq_vals];
 end
 
 
+for i=1:100
+    a(i)= (sum(seqs_H(i,:))==91)
+    e

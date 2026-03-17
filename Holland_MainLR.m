@@ -165,22 +165,32 @@ ListenChar(0);
 end
 
 
-% =========================================================================
 function seq = GenerateSeqFast_S(start_pt)
-% 生成S多序列：48 shift, 12 hold, 30个1, 30个2
-% 48个游程，start_pt与第一游程值不同，额外长度12随机分配到48个游程
-n_runs  = 48;
-n_extra = 12;   % 60 - 48
+% 48个游程，奇数24个，偶数24个
+% 额外12个长度：各6个分配给奇数游程，6个分配给偶数游程
+% 这样奇数游程总长=24+6=30，偶数游程总长=24+6=30
 
-extra = zeros(1, n_runs);
-extra(randperm(n_runs, n_extra)) = 1;
-run_lengths = 1 + extra;
+n_runs   = 48;
+odd_runs  = 24;   % 奇数游程
+even_runs = 24;   % 偶数游程
+n_extra_each = 6; % 奇/偶各分6个额外
 
-first_val = 3 - start_pt;   % 第一游程与start_pt不同
+extra_odd  = zeros(1, odd_runs);
+extra_odd(randperm(odd_runs, n_extra_each)) = 1;
+
+extra_even = zeros(1, even_runs);
+extra_even(randperm(even_runs, n_extra_each)) = 1;
+
+% 交织回48个游程
+run_lengths = zeros(1, n_runs);
+run_lengths(1:2:end) = 1 + extra_odd;    % 奇数位
+run_lengths(2:2:end) = 1 + extra_even;   % 偶数位
+
+first_val = 3 - start_pt;
 seq_vals  = zeros(1, 60);
 ptr = 1;
 for r = 1:n_runs
-    if mod(r, 2) == 1
+    if mod(r,2) == 1
         v = first_val;
     else
         v = 3 - first_val;
@@ -192,22 +202,33 @@ seq = [start_pt, seq_vals];
 end
 
 
-% =========================================================================
 function seq = GenerateSeqFast_H(start_pt)
-% 生成H多序列：12 shift, 48 hold, 30个1, 30个2
-% 12个游程，start_pt与第一游程值不同，额外长度48用stars-and-bars随机分配
-n_runs  = 12;
-n_extra = 48;   % 60 - 12
+% 12个游程，奇数6个，偶数6个
+% 额外48个长度：各24个分配给奇数游程，24个分配给偶数游程
 
-cuts        = sort(randperm(n_extra + n_runs - 1, n_runs - 1));
-cuts        = [0, cuts, n_extra + n_runs];
-run_lengths = diff(cuts);   % 每段长度>=1，总和=60
+n_runs    = 12;
+odd_runs  = 6;
+even_runs = 6;
+n_extra_each = 24;  % 奇/偶各分24个额外
+
+% stars-and-bars分别给奇/偶游程
+cuts_odd  = sort(randperm(n_extra_each + odd_runs - 1,  odd_runs - 1));
+cuts_odd  = [0, cuts_odd,  n_extra_each + odd_runs];
+len_odd   = diff(cuts_odd);   % 6个奇数游程长度，总和=30
+
+cuts_even = sort(randperm(n_extra_each + even_runs - 1, even_runs - 1));
+cuts_even = [0, cuts_even, n_extra_each + even_runs];
+len_even  = diff(cuts_even);  % 6个偶数游程长度，总和=30
+
+run_lengths = zeros(1, n_runs);
+run_lengths(1:2:end) = len_odd;
+run_lengths(2:2:end) = len_even;
 
 first_val = 3 - start_pt;
 seq_vals  = zeros(1, 60);
 ptr = 1;
 for r = 1:n_runs
-    if mod(r, 2) == 1
+    if mod(r,2) == 1
         v = first_val;
     else
         v = 3 - first_val;
@@ -221,139 +242,96 @@ end
 
 % =========================================================================
 function p = AssignImages(p)
-% AssignImages  根据AllSeqs为4个block分配图片
-%
-% seq(2:61)中：1→前120图片（左侧cue），2→后120图片（右侧cue）
-% block1/2：encoding，按seq的L/R直接分配新图片
-% block3/4：re-exposure，各取一半来自block1，一半来自block2
-%           图片的L/R由block3/4自身的seq决定
+
 
 n_total_each = 120;
+block_types  = p.block_order;
 
-% 从前120和后120各随机抽60张供本session使用
-pool_front   = Shuffle(1:n_total_each);
-pool_back    = Shuffle((n_total_each+1):(n_total_each*2));
-picked_front = pool_front(1:60);
-picked_back  = pool_back(1:60);
-p.imagePool  = [picked_front, picked_back];
-
-% 120张均分为4个set，每set 30张
-shuffled     = Shuffle(p.imagePool);
-p.imageSet.a = shuffled(1:30);
-p.imageSet.b = shuffled(31:60);
-p.imageSet.c = shuffled(61:90);
-p.imageSet.d = shuffled(91:120);
-
-% 根据block_order确定set分配（encode_block, reexp_block）
-switch p.block_order
-    case {'SHHS', 'HSSH'}
-        assign = [1 4; 1 3; 2 3; 2 4];
-    case {'SHSH', 'HSHS'}
-        assign = [1 3; 1 4; 2 3; 2 4];
-end
-
-sets        = {p.imageSet.a, p.imageSet.b, p.imageSet.c, p.imageSet.d};
-block_types = p.block_order;
-
-% 生成imageInfo
-n_total = 120;
-info(n_total) = struct('stimNum', 0, 'cueType', 0, ...
-                       'encodeBlock', 0, 'reexpBlock', 0, ...
-                       'condition', '', 'BI', 0);
-for s = 1:4
-    enc_blk  = assign(s, 1);
-    reex_blk = assign(s, 2);
-    enc_type = block_types(enc_blk);
-    rex_type = block_types(reex_blk);
-    cond     = [enc_type, rex_type];
-    bi       = reex_blk - enc_blk - 1;
-    for j = 1:30
-        idx                   = (s-1)*30 + j;
-        stim_num              = sets{s}(j);
-        info(idx).stimNum     = stim_num;
-        info(idx).cueType     = 1 + (stim_num > n_total_each);
-        info(idx).encodeBlock = enc_blk;
-        info(idx).reexpBlock  = reex_blk;
-        info(idx).condition   = cond;
-        info(idx).BI          = bi;
-    end
-end
-p.imageInfo = info;
-
-% ---- block1/2：按seq的L/R从imagePool分配图片 ----
-% seq(t+1)=1 → 该trial需要前120图片（左侧cue）
-% seq(t+1)=2 → 该trial需要后120图片（右侧cue）
-pool_L = Shuffle(p.imagePool(p.imagePool <= n_total_each));   % 前120中选出的
-pool_R = Shuffle(p.imagePool(p.imagePool >  n_total_each));   % 后120中选出的
-L_ptr  = 1;
-R_ptr  = 1;
+% 打乱前120(L)和后120(R)作为供应池
+all_L = Shuffle(1:n_total_each);
+all_R = Shuffle((n_total_each+1):(n_total_each*2));
+L_ptr = 1;
+R_ptr = 1;
 
 blockImgs = cell(1, 4);
 
+% ---- block1/2：各抽30L+30R，按seq(2:61)的L/R顺序排列 ----
 for blk = 1:2
-    seq    = p.AllSeqs{blk};
-    lr_seq = seq(2:end);        % 长度60，每个trial的L/R
-    imgs   = zeros(1, 60);
+    imgs_L = Shuffle(all_L(L_ptr : L_ptr+29));   L_ptr = L_ptr + 30;
+    imgs_R = Shuffle(all_R(R_ptr : R_ptr+29));   R_ptr = R_ptr + 30;
+
+    lr_seq = p.AllSeqs{blk}(2:end);   % 长度60，1=L，2=R
+    lp = 1;  rp = 1;
+    imgs = zeros(1, 60);
     for t = 1:60
-        if lr_seq(t) == 1       % 需要前120图片（左侧）
-            imgs(t) = pool_L(L_ptr);
-            L_ptr   = L_ptr + 1;
-        else                    % 需要后120图片（右侧）
-            imgs(t) = pool_R(R_ptr);
-            R_ptr   = R_ptr + 1;
+        if lr_seq(t) == 1
+            imgs(t) = imgs_L(lp);  lp = lp + 1;
+        else
+            imgs(t) = imgs_R(rp);  rp = rp + 1;
         end
     end
     blockImgs{blk} = imgs;
 end
 
-% ---- block3/4：各取一半来自block1，一半来自block2 ----
-% 按block3/4自身seq的L/R需求，从block1/2对应的L/R图片池里各取一半
-b1_L = blockImgs{1}(blockImgs{1} <= n_total_each);
-b1_R = blockImgs{1}(blockImgs{1} >  n_total_each);
-b2_L = blockImgs{2}(blockImgs{2} <= n_total_each);
-b2_R = blockImgs{2}(blockImgs{2} >  n_total_each);
+% block3/4：15L from blk1 ++ 15L from blk2，R the same
+b1_L = Shuffle(blockImgs{1}(blockImgs{1} <= n_total_each));
+b1_R = Shuffle(blockImgs{1}(blockImgs{1} >  n_total_each));
+b2_L = Shuffle(blockImgs{2}(blockImgs{2} <= n_total_each));
+b2_R = Shuffle(blockImgs{2}(blockImgs{2} >  n_total_each));
+
+pools_L = {Shuffle([b1_L(1:15),  b2_L(1:15)]), ...
+           Shuffle([b1_L(16:30), b2_L(16:30)])};
+pools_R = {Shuffle([b1_R(1:15),  b2_R(1:15)]), ...
+           Shuffle([b1_R(16:30), b2_R(16:30)])};
 
 for blk = 3:4
-    seq    = p.AllSeqs{blk};
-    lr_seq = seq(2:end);
-
-    n_L_needed = sum(lr_seq == 1);
-    n_R_needed = sum(lr_seq == 2);
-
-    % L图片：各取一半来自block1，一半来自block2
-    x_L     = min(floor(n_L_needed / 2), length(b1_L));
-    y_L     = n_L_needed - x_L;
-    taken_L = [Shuffle(b1_L(1:x_L)), Shuffle(b2_L(1:y_L))];
-
-    % R图片：同理
-    x_R     = min(floor(n_R_needed / 2), length(b1_R));
-    y_R     = n_R_needed - x_R;
-    taken_R = [Shuffle(b1_R(1:x_R)), Shuffle(b2_R(1:y_R))];
-
-    % 按seq顺序填入
-    pool_L_blk = Shuffle(taken_L);
-    pool_R_blk = Shuffle(taken_R);
-    L_ptr_blk  = 1;
-    R_ptr_blk  = 1;
-
+    lr_seq = p.AllSeqs{blk}(2:end);
+    pool_L = pools_L{blk-2};
+    pool_R = pools_R{blk-2};
+    lp = 1;  rp = 1;
     imgs = zeros(1, 60);
     for t = 1:60
         if lr_seq(t) == 1
-            imgs(t)   = pool_L_blk(L_ptr_blk);
-            L_ptr_blk = L_ptr_blk + 1;
+            imgs(t) = pool_L(lp);  lp = lp + 1;
         else
-            imgs(t)   = pool_R_blk(R_ptr_blk);
-            R_ptr_blk = R_ptr_blk + 1;
+            imgs(t) = pool_R(rp);  rp = rp + 1;
         end
     end
     blockImgs{blk} = imgs;
 end
 
 p.blockImages = blockImgs;
+
+% ---- imageInfo：记录每张图片的基本信息 ----
+all_enc_imgs = [blockImgs{1}, blockImgs{2}];
+n_total      = length(all_enc_imgs);
+
+info(n_total) = struct('stimNum', 0, 'cueType', 0, ...
+                       'firstBlock', 0, 'reexpBlock', 0, ...
+                       'condition', '', 'BI', 0);
+
+for entry = 1:n_total
+    stim_num = all_enc_imgs(entry);
+    enc_blk  = 1 + (entry > 60);
+
+    if any(blockImgs{3} == stim_num)
+        reex_blk = 3;
+    else
+        reex_blk = 4;
+    end
+
+    info(entry).stimNum    = stim_num;
+    info(entry).cueType    = 1 + (stim_num > n_total_each);
+    info(entry).firstBlock = enc_blk;
+    info(entry).reexpBlock = reex_blk;
+    info(entry).condition  = [block_types(enc_blk), block_types(reex_blk)];
+    info(entry).BI         = reex_blk - enc_blk - 1;
 end
 
+p.imageInfo = info;
+end
 
-% =========================================================================
+% 
 function p = LoadNoiseTextures(p, window)
 stim_root = fullfile('material', 'stimuli');
 noise_dir = fullfile(stim_root, 'noise_images');
@@ -428,7 +406,7 @@ p.FrameRate    = 4;
 p.FrameTime    = 1000 / p.FrameRate;
 p.CueFrameTime = 250;   % ms Here Holland!!!!!!
 
-% ---- 从seq直接读取 ----
+% -
 seq = p.AllSeqs{run};              % 长度61
 
 % trial t的fix点 = seq(t)（即上一trial的correct_side）
@@ -437,21 +415,21 @@ p.StartingLocations = seq(1:60);   % seq(1)~seq(60)
 % trial t的correct_side = seq(t+1)
 correct_side = seq(2:61);          % seq(2)~seq(61)
 
-% ShiftCues：相邻值变化→shift(2)，不变→hold(1)
+% ShiftCues：shift(2)，hold(1)
 p.ShiftCues = ones(1, 60);
 p.ShiftCues(diff(seq) ~= 0) = 2;
 
-% 图片顺序：blockImages已在AssignImages中按seq的L/R顺序排好，直接使用
+% seq 2:61
 block_imgs       = p.blockImages{run};
 p.StimulusNumber = block_imgs;
 
-% CueType：前120→1（左），后120→2（右）
+% <120 L ; >120 R
 p.CueType = 1 + (block_imgs > 120);
 
-% imageLocation = correct_side（图片出现在correct_side那侧）
+% imageLocation = correct_side（
 imageLocation = correct_side;
 
-% Exposure
+% Exposure/retrevial or not
 if run <= 2
     p.Exposure = ones(1, p.NumTrials);
 else
@@ -469,8 +447,8 @@ end
 
 p.Cues = imageLocation;
 
-% ---- Response（奇/偶）----
-p.Response    = Shuffle([ones(1,p.NumTrials/2) ones(1,p.NumTrials/2)*2]);
+% Response odd/even
+p.Response    = Shuffle([ones(1,p.NumTrials/2) ones(1,p.NumTrials/2)*2]); %odd or even for this trial
 p.TargetStart = zeros(1, p.NumTrials);
 p.CueStart    = zeros(1, p.NumTrials);
 
@@ -496,13 +474,13 @@ for t = 1:p.NumTrials
     cue_tex     = p.cueTextures(cue_tex_pos);
     [p, noise_cue] = GetNoiseTex(p);
 
-    if imageLocation(t) == 1   % cue图片在左
+    if imageLocation(t) == 1   % L cue
         while noise_cue == loc2(n_pre)
             [p, noise_cue] = GetNoiseTex(p);
         end
         loc1(cue_frame) = cue_tex;
         loc2(cue_frame) = noise_cue;
-    else                       % cue图片在右
+    else                       % R cue
         while noise_cue == loc1(n_pre)
             [p, noise_cue] = GetNoiseTex(p);
         end
