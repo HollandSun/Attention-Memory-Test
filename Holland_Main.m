@@ -2,8 +2,8 @@ function p = AttentionShift_Step1
 
 %% load participant information
 s             = input('Enter Subject Number: ');
-startingBlock = input('Enter Version Number (1=SHHS, 2=HSSH, 3=SHSH, 4=HSHS): ');% We have 4 condition this time
-block_orders = {'SHHS', 'HSSH', 'SHSH', 'HSHS'};
+startingBlock = input('Enter Version Number (1=SHHS, 2=HSSH, 3=SHSH, 4=HSHS): ');
+block_orders  = {'SHHS', 'HSSH', 'SHSH', 'HSHS'};
 p.block_order = block_orders{startingBlock};
 
 p.Exp     = 'AttentionShift_ImagePriming';
@@ -14,36 +14,34 @@ p.Seed    = ClockRandSeed();
 
 diary(['Diaries/' num2str(s) 'diary.txt'])
 
-%% generate all block的ShiftCues
-% 2=shift，1=hold
-p.NumTrials       = 60;
+%% generate all block ShiftCues
+% 2=shift, 1=hold
+p.NumTrials       = 80;   % !! adjust here
 p.FrameRate       = 4;
 p.AllDistInterval = cell(1, 4);
 p.AllShiftCues    = cell(1, 4);
 
 for blk = 1:4
-    dist = Shuffle([ones(1,20) ones(1,20)*3 ones(1,20)*5]);
-    sc   = zeros(1, p.NumTrials);
+    dist = randi(3, 1, p.NumTrials);   % !! dist interval: 1/2/3 frames, fully random
+
+    shift_rate = 0.70;   % !! S block shift ratio (H block = 1-shift_rate)
     if p.block_order(blk) == 'S'
-        sc(dist==1) = Shuffle([ones(1,16)*2 ones(1,4)]);
-        sc(dist==3) = Shuffle([ones(1,16)*2 ones(1,4)]);
-        sc(dist==5) = Shuffle([ones(1,16)*2 ones(1,4)]);
+        n_shift = round(p.NumTrials * shift_rate);
     else
-        sc(dist==1) = Shuffle([ones(1,4)*2 ones(1,16)]);
-        sc(dist==3) = Shuffle([ones(1,4)*2 ones(1,16)]);
-        sc(dist==5) = Shuffle([ones(1,4)*2 ones(1,16)]);
+        n_shift = round(p.NumTrials * (1 - shift_rate));
     end
+    n_hold = p.NumTrials - n_shift;
+    sc = Shuffle([ones(1,n_shift)*2, ones(1,n_hold)]);
+
     p.AllDistInterval{blk} = dist;
     p.AllShiftCues{blk}    = sc;
 end
 
 %%  assign imaging
 p = AssignImages(p);
-%   p.imagePool         : 120 number for this session
-%   p.imageInfo         : for each image information
-%   p.blockImages{1..4} : 每个block要呈现的图片编号（顺序与ShiftCues一一对应）
 
-%%  PTB初始化
+
+%%  PTB 
 KbName('UnifyKeyNames');
 whichScreen = 0;
 background  = [0 0 0];
@@ -57,7 +55,7 @@ p.slack = Screen('GetFlipInterval', window) / 2;
 p.Cx = windowRect(3) / 2;
 p.Cy = windowRect(4) / 2;
 
-% loc1=左 left，loc2=右 right，格式[cx cy cx cy]
+% loc1= left，loc2= right，
 p.loc1   = [p.Cx-300 p.Cy p.Cx-300 p.Cy];
 p.loc2   = [p.Cx+300 p.Cy p.Cx+300 p.Cy];
 p.center = [p.Cx p.Cy p.Cx p.Cy];
@@ -65,14 +63,14 @@ p.center = [p.Cx p.Cy p.Cx p.Cy];
 
 Screen('TextFont', window, 'Monaco');
 
-%% 图片尺寸配置 picture size markker!!!!
+%% picture size markker!!!!
 % 如需修改呈现尺寸只改这一行 Here Holland
 p.stimSize = 256;   % !!!!! must be consist of generate_stimuli.m中img_size一致
 half       = p.stimSize / 2;
 p.dstRect1 = [p.loc1(1)-half, p.loc1(2)-half, p.loc1(1)+half, p.loc1(2)+half];
 p.dstRect2 = [p.loc2(1)-half, p.loc2(2)-half, p.loc2(1)+half, p.loc2(2)+half];
 
-%% load 载入noise图片 N=240
+%% load noise N=240
 p = LoadNoiseTextures(p, window);
 
 %% keyboard setup
@@ -86,10 +84,10 @@ KbQueueCreate(p.ind, keyList);
 for run = 1:4
     p.run = run;
 
-    % -载入本run的cue图片texture 
+    % load the cue texture in this run
     p = LoadCueTextures(p, run, window);
 
-    % trial setup
+    % trial setup for this run
     p = TrialSetup(p, run);
 
     % inistialize
@@ -139,7 +137,7 @@ for run = 1:4
         end
     end
 
-    %% run结束
+    %% run end
     Screen('Flip', window);
     WaitSecs(0.5);
     Screen('TextSize', window, 40);
@@ -179,143 +177,153 @@ end
 
 
 function p = AssignImages(p)
-% AssignImages  根据预生成的ShiftCues分配图片至4个block
+% block1/2 = encoding, block3/4 = retrieval
+% priming pool per encoding block: randomly pick n_priming shift trials
+%   and n_priming hold trials as priming candidates
+% block3 gets first half of each pool, block4 gets second half
+% remaining slots filled with filler (with replacement)
 
-n_total_each = 120;   % 前/后各120张
-
-pool_front = Shuffle(1:n_total_each);           % 前120打乱备用
-pool_back  = Shuffle((n_total_each+1):(n_total_each*2));  % 后120打乱备用
-front_idx  = 1;   % 前120取用指针
-back_idx   = 1;   % 后120取用指针
-
+n_total_each = 120;
+priming_rate = 0.30;   % !! adjust here
+n_priming    = round(p.NumTrials * priming_rate);   % 24: per type per encoding block
+n_half       = n_priming / 2;                       % 12: each ret block gets this many
 
 block_types = p.block_order;
 
+% shuffle full image library
+pool_front = Shuffle(1:n_total_each);
+pool_back  = Shuffle((n_total_each+1):(n_total_each*2));
+front_idx  = 1;
+back_idx   = 1;
 
-%   ShiftCues=2（shift） 前120图片（cueType=1）
-%   ShiftCues=1（hold） 后120图片（cueType=2）
-blockImgs = cell(1, 4);
+blockImgs       = cell(1, 4);
+primingTrialIdx = cell(1, 4);
+priming_pools   = cell(2, 2);   % priming_pools{enc_blk, 1=shift/2=hold}
 
-
-
-% For block 1 block 2
-for blk = 1:2 %encoding
-    sc = p.AllShiftCues{blk};   
-    imgs = zeros(1, p.NumTrials);
-    for t = 1:p.NumTrials
-        if sc(t) == 2   % shifting 前120图片
-            imgs(t)   = pool_front(front_idx);
-            front_idx = front_idx + 1;
-        else             % hold 后120图片
-            imgs(t)   = pool_back(back_idx);
-            back_idx  = back_idx + 1;
-        end
-    end
-    blockImgs{blk} = imgs;
-end
-
-% For block 3 block 4
-% 各取一半来自block1，一半来自block2
-
-for blk = 3:4
-    sc = p.AllShiftCues{blk};   % 本block需要的shift/hold序列
-    n_shift_needed = sum(sc == 2);  
-    n_hold_needed  = sum(sc == 1);  
-
-    % 从block1和block2各取30张，但要满足shift/hold数量
-    % block1里：前120图片（shift）和后120图片（hold）各有若干
-    blk1_imgs   = blockImgs{1};
-    blk2_imgs   = blockImgs{2};
-    blk1_shift  = blk1_imgs(p.AllShiftCues{1} == 2);   % block1的shift图片
-    blk1_hold   = blk1_imgs(p.AllShiftCues{1} == 1);   % block1的hold图片
-    blk2_shift  = blk2_imgs(p.AllShiftCues{2} == 2);   % block2的shift图片
-    blk2_hold   = blk2_imgs(p.AllShiftCues{2} == 1);   % block2的hold图片
-    % shuffle them
-    blk1_shift = Shuffle(blk1_shift);
-    blk2_shift = Shuffle(blk2_shift);
-    blk1_hold  = Shuffle(blk1_hold);
-    blk2_hold  = Shuffle(blk2_hold);
-
-    % 尽量各取一半，超出各自上限时从另一边补足
-    % shift：理想各取n_shift_needed/2，但受限于block1/2各自的shift数量
-    x = min(floor(n_shift_needed / 2), length(blk1_shift));   % block1能提供的shift数
-    y = n_shift_needed - x;                                    % 剩余从block2取
-    % hold：同理
-    xh = min(floor(n_hold_needed / 2), length(blk1_hold));    % block1能提供的hold数
-    yh = n_hold_needed - xh;                                   % 剩余从block2取
-
-    taken_shift = [blk1_shift(1:x),  blk2_shift(1:y)];
-    taken_hold  = [blk1_hold(1:xh),  blk2_hold(1:yh)];
-
-    % 按ShiftCues顺序填入图片
-    shift_pool = Shuffle(taken_shift);
-    hold_pool  = Shuffle(taken_hold);
-    shift_ptr  = 1; %shilft count
-    hold_ptr   = 1; %hold  count
-
-    imgs = zeros(1, p.NumTrials);
-    for t = 1:p.NumTrials
-        if sc(t) == 2   % shift trial 
-            imgs(t)   = shift_pool(shift_ptr);
-            shift_ptr = shift_ptr + 1;
-        else             % hold trial 
-            imgs(t)   = hold_pool(hold_ptr);
-            hold_ptr  = hold_ptr + 1;
-        end
-    end
-    blockImgs{blk} = imgs;
-end
-
-p.blockImages = blockImgs;
-
-% generate imageInfo
-
-all_imgs = [blockImgs{1}, blockImgs{2}, blockImgs{3}, blockImgs{4}];
-n_total  = length(all_imgs);
-p.imagePool = unique(all_imgs);
-
-info(n_total) = struct('stimNum', 0, 'cueType', 0, ...
-                       'encodeBlock', 0, 'reexpBlock', 0, ...
-                       'condition', '', 'BI', 0, 'trialInBlock', 0);
-
-% block1/2是encoding，block3/4是re-exposure
-
-entry = 1;
+%% block1/2: encoding
 for blk = 1:2
-    imgs = blockImgs{blk};
+    sc           = p.AllShiftCues{blk};
+    imgs         = zeros(1, p.NumTrials);
+    shift_trials = find(sc == 2);
+    hold_trials  = find(sc == 1);
+
+    for i = 1:length(shift_trials)
+        imgs(shift_trials(i)) = pool_front(front_idx);
+        front_idx = front_idx + 1;
+    end
+    for i = 1:length(hold_trials)
+        imgs(hold_trials(i)) = pool_back(back_idx);
+        back_idx = back_idx + 1;
+    end
+    blockImgs{blk} = imgs;
+
+    % randomly select n_priming shift trials and n_priming hold trials as priming pool
+    prim_s_idx = shift_trials(randperm(length(shift_trials), n_priming));
+    prim_h_idx = hold_trials(randperm(length(hold_trials),  n_priming));
+    priming_pools{blk, 1} = Shuffle(imgs(prim_s_idx));   % shift priming images
+    priming_pools{blk, 2} = Shuffle(imgs(prim_h_idx));   % hold priming images
+end
+
+% filler pool: assigned images that are NOT in any priming pool
+all_priming = [priming_pools{1,1}, priming_pools{1,2}, ...
+               priming_pools{2,1}, priming_pools{2,2}];
+filler_front = pool_front(1:front_idx-1);
+filler_back  = pool_back(1:back_idx-1);
+filler_front = filler_front(~ismember(filler_front, all_priming));
+filler_back  = filler_back(~ismember(filler_back,  all_priming));
+
+%% block3/4: retrieval
+% block3 gets priming_pools{enc,type}(1:n_half)
+% block4 gets priming_pools{enc,type}(n_half+1:end)
+for ret_blk = 3:4
+    ret_idx = ret_blk - 2;   % 1=block3, 2=block4
+    sc      = p.AllShiftCues{ret_blk};
+
+    % available priming: from enc1 and enc2, shift and hold
+    if ret_idx == 1
+        avail_shift = [priming_pools{1,1}(1:n_half),       priming_pools{2,1}(1:n_half)];
+        avail_hold  = [priming_pools{1,2}(1:n_half),       priming_pools{2,2}(1:n_half)];
+    else
+        avail_shift = [priming_pools{1,1}(n_half+1:end),   priming_pools{2,1}(n_half+1:end)];
+        avail_hold  = [priming_pools{1,2}(n_half+1:end),   priming_pools{2,2}(n_half+1:end)];
+    end
+    avail_shift = Shuffle(avail_shift);   % 24 shift priming images
+    avail_hold  = Shuffle(avail_hold);    % 24 hold priming images
+
+    n_ret_shift = sum(sc == 2);
+    n_ret_hold  = sum(sc == 1);
+
+    % shift: priming first, filler (with replacement) for remainder
+    n_ps = min(length(avail_shift), n_ret_shift);
+    n_fs = n_ret_shift - n_ps;
+    shift_imgs    = [avail_shift(1:n_ps), filler_front(randi(length(filler_front), 1, n_fs))];
+    is_prim_shift = [true(1,n_ps), false(1,n_fs)];
+
+    % hold: same
+    n_ph = min(length(avail_hold), n_ret_hold);
+    n_fh = n_ret_hold - n_ph;
+    hold_imgs    = [avail_hold(1:n_ph), filler_back(randi(length(filler_back), 1, n_fh))];
+    is_prim_hold = [true(1,n_ph), false(1,n_fh)];
+
+    % shuffle and assign trial by trial
+    ps = randperm(n_ret_shift);  ph = randperm(n_ret_hold);
+    shift_imgs    = shift_imgs(ps);    is_prim_shift = is_prim_shift(ps);
+    hold_imgs     = hold_imgs(ph);     is_prim_hold  = is_prim_hold(ph);
+
+    imgs       = zeros(1, p.NumTrials);
+    is_priming = false(1, p.NumTrials);
+    s_ptr = 1;  h_ptr = 1;
     for t = 1:p.NumTrials
-        stim_num = imgs(t);
-
-        % 找这张图片在block3或block4的re-exposure trial
-        reex_blk = NaN;
-        for rb = 3:4
-            if any(blockImgs{rb} == stim_num)
-                reex_blk = rb;
-                break;
-            end
+        if sc(t) == 2
+            imgs(t)       = shift_imgs(s_ptr);
+            is_priming(t) = is_prim_shift(s_ptr);
+            s_ptr = s_ptr + 1;
+        else
+            imgs(t)       = hold_imgs(h_ptr);
+            is_priming(t) = is_prim_hold(h_ptr);
+            h_ptr = h_ptr + 1;
         end
+    end
+    blockImgs{ret_blk}       = imgs;
+    primingTrialIdx{ret_blk} = find(is_priming);
+end
 
-        enc_type = block_types(blk);
-        rex_type = block_types(reex_blk);
+p.blockImages     = blockImgs;
+p.primingTrialIdx = primingTrialIdx;
 
-        info(entry).stimNum      = stim_num;
-        info(entry).cueType      = 1 + (stim_num > n_total_each);
-        info(entry).encodeBlock  = blk; %number
-        info(entry).reexpBlock   = reex_blk; %number
-        info(entry).condition    = [enc_type, rex_type];
-        info(entry).BI           = reex_blk - blk - 1;
-        info(entry).trialInBlock = t;
+%% imageInfo: record priming trial metadata
+n_info = sum(cellfun(@length, primingTrialIdx(3:4)));
+info(max(n_info,1)) = struct('stimNum', 0, 'cueType', 0, ...
+                              'encodeBlock', 0, 'retrievalBlock', 0, ...
+                              'condition', '', 'BI', 0);
+entry = 1;
+for ret_blk = 3:4
+    ret_type       = block_types(ret_blk);
+    priming_trials = primingTrialIdx{ret_blk};
+    for i = 1:length(priming_trials)
+        t        = priming_trials(i);
+        stim_num = blockImgs{ret_blk}(t);
+        if ismember(stim_num, blockImgs{1})
+            enc_blk = 1;
+        else
+            enc_blk = 2;
+        end
+        enc_type               = block_types(enc_blk);
+        info(entry).stimNum        = stim_num;
+        info(entry).cueType        = 1 + (stim_num > n_total_each);
+        info(entry).encodeBlock    = enc_blk;
+        info(entry).retrievalBlock = ret_blk;
+        info(entry).condition      = [enc_type, ret_type];
+        info(entry).BI             = ret_blk - enc_blk - 1;
         entry = entry + 1;
     end
 end
-
 p.imageInfo = info(1:entry-1);
 end
 
 
-
 function p = LoadNoiseTextures(p, window)
-% LoadNoiseTextures  载入全部240张noise图片texture
+% LoadNoiseTextures  load all 240 noise
 stim_root = fullfile('material', 'stimuli');
 noise_dir = fullfile(stim_root, 'noise_images');
 N_NOISE   = 240;  
@@ -349,11 +357,11 @@ if isfield(p, 'cueTextures') && ~isempty(p.cueTextures)
     end
 end
 
-% 重置noise池（每个run独立随机）
+% rondom the noise pool
 p.noisePool    = Shuffle(1:length(p.noiseTextures));
 p.noisePoolIdx = 1;
 
-image_ids     = p.blockImages{run};   % 本run的60张图片编号
+image_ids     = p.blockImages{run};   % 60 number in this run
 n_cue         = length(image_ids);
 
 
@@ -373,7 +381,7 @@ function [p, tex] = GetNoiseTex(p)
 % 保证收尾衔接不重复
 
 if p.noisePoolIdx > length(p.noisePool)
-    last_idx = p.noisePool(end);   % 记录上一轮最后一个索引
+    last_idx = p.noisePool(end);   % 记录上一轮最后一个
 
     new_pool = Shuffle(1:length(p.noiseTextures));
 
@@ -396,7 +404,7 @@ end
 function p = TrialSetup(p, run)
 
 
-p.NumTrials = 60;
+% NumTrials already set in main
 
 % we generate those first, so just read them
 p.DistInterval = p.AllDistInterval{run};
@@ -410,19 +418,25 @@ p.ShiftCues = p.AllShiftCues{run};   % 2=shift, 1=hold
 block_imgs       = p.blockImages{run};
 p.StimulusNumber = block_imgs;
 
-% encoding（block1/2）， retreival（block3/4）
+% encoding: block1/2 | retrieval: block3/4
+% Exposure: 1=encoding, 2=priming, 3=filler
 if run <= 2
-    p.Exposure = ones(1, p.NumTrials);   
+    p.Exposure = ones(1, p.NumTrials);
 else
-    p.Exposure = ones(1, p.NumTrials)*2;  
+    p.Exposure = ones(1, p.NumTrials) * 3;
+    p.Exposure(p.primingTrialIdx{run}) = 2;
 end
 
-% Condition：encoding block全为空，re-exposure block SS/HH/SH/HS
+% Condition: encoding=empty, retrieval priming trials get SS/SH/HS/HH
 p.Condition = repmat({''}, 1, p.NumTrials);
 if run > 2
-    for t = 1:p.NumTrials
+    priming_trials = p.primingTrialIdx{run};
+    for i = 1:length(priming_trials)
+        t   = priming_trials(i);
         idx = find([p.imageInfo.stimNum] == block_imgs(t), 1);
-        p.Condition{t} = p.imageInfo(idx).condition;
+        if ~isempty(idx)
+            p.Condition{t} = p.imageInfo(idx).condition;
+        end
     end
 end
 
@@ -452,7 +466,7 @@ end
 
 p.CuesAppearLocation                   = imageLocation;
 p.StartingLocations       = startingPosition;
-p.StartingLocations(2:60) = correct_side(1:59);  % trial t的fix = 上一trial的correct_side
+p.StartingLocations(2:p.NumTrials) = correct_side(1:p.NumTrials-1);  % trial t的fix = 上一trial的correct_side
 
 % random odd/even Response stream
 p.Response    = Shuffle([ones(1,p.NumTrials/2) ones(1,p.NumTrials/2)*2]); % correct stream is even or odd for this trial
@@ -520,7 +534,8 @@ for t = 1:p.NumTrials
         if done; break; end
     end
 
-    % 正确的奇/偶stream出现在correct_side那侧，另一侧随机数字1-8
+    % all odd or even number will be in the correct_side and the other is
+    % the randi stream.
     if correct_side(t) == 1
         loc1(resp_start:resp_end) = ShufDig;
         loc2(resp_start:resp_end) = randi(8, 1, 8);
@@ -554,7 +569,7 @@ p.streamFlip = p.prevFlip + 0.25;
 end
 
 
-% =========================================================================
+% 
 function [p, exitTask] = PresentStream(window, p)
 
 t        = p.trial;
@@ -681,4 +696,8 @@ end
 end
 
 
-
+% ==================================================
+% /\_/\\
+%( o.o )    MATLAB is watching you...
+% > ^ <
+% ==================================================
