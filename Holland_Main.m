@@ -586,8 +586,12 @@ for framenum = 1:length(p.Location1{t})
         Screen('DrawTexture', window, val2, [], p.dstRect2);
 
     else
-        % response window：数字判断
-        DrawFormattedText(window, num2str(val1), 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.loc1);
+        % response window：noise底层 + 数字叠加
+        [p, noise1] = GetNoiseTex(p);
+        [p, noise2] = GetNoiseTex(p);
+        Screen('DrawTexture', window, noise1, [], p.dstRect1);   % noise底层
+        Screen('DrawTexture', window, noise2, [], p.dstRect2);
+        DrawFormattedText(window, num2str(val1), 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.loc1);  % 数字叠加
         DrawFormattedText(window, num2str(val2), 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.loc2);
     end
 
