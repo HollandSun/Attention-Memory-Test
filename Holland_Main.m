@@ -516,32 +516,27 @@ for t = 1:p.NumTrials
         loc1(cue_frame) = noise_cue;
     end
 
-    % Response window 
+    % Response window: single digit shown for full response duration
     if p.Response(t) == 1
-        RDig = [1 3 5 7];
+        RDig = [1 3 5 7];   % odd
     else
-        RDig = [2 4 6 8];
+        RDig = [2 4 6 8];   % even
     end
 
-    while true
-        done    = 1;
-        ShufDig = Shuffle([RDig RDig]);
-        for q = 2:length(ShufDig)
-            if ShufDig(q) == ShufDig(q-1) % any repeat?
-                done = 0;
-            end
-        end
-        if done; break; end
-    end
+    % correct side: one random digit from the correct set (odd or even)
+    single_correct = RDig(randi(length(RDig)));
 
-    % all odd or even number will be in the correct_side and the other is
-    % the randi stream.
+    % distractor side: one random digit from 1-8, excluding the correct digit
+    distract_pool  = setdiff(1:8, single_correct);
+    single_distract = distract_pool(randi(length(distract_pool)));
+
+    % fill all response frames with the same single digit
     if correct_side(t) == 1
-        loc1(resp_start:resp_end) = ShufDig;
-        loc2(resp_start:resp_end) = randi(8, 1, 8);
+        loc1(resp_start:resp_end) = single_correct;
+        loc2(resp_start:resp_end) = single_distract;
     else
-        loc2(resp_start:resp_end) = ShufDig;
-        loc1(resp_start:resp_end) = randi(8, 1, 8);
+        loc2(resp_start:resp_end) = single_correct;
+        loc1(resp_start:resp_end) = single_distract;
     end
 
     p.Location1{t} = loc1;
@@ -658,18 +653,28 @@ end
 
 
 function p = TakeBreak(window, p)
-% TakeBreak  
+% TakeBreak
 
-Screen('TextSize', window, 40);
 acc = ceil(mean(p.Accurate) * 100);
-DrawFormattedText(window, ['Take a Break \n Your Accuracy Was ' num2str(acc) '%'], 'center', 'center', [255 255 255]);
-p.prevFlip = Screen('Flip', window, p.prevFlip - p.slack);
-DrawFormattedText(window, 'Press the SPACE bar to Continue', 'center', 'center', [255 255 255]);
 fprintf('Accuracy: %d\n', acc);
-WaitSecs(29.5);
-Screen('Flip', window, p.prevFlip + 30);
-while KbCheck; end
 
+%% 屏幕1：显示成绩，强制休息30秒，按键无效
+Screen('TextSize', window, 40);
+DrawFormattedText(window, ['Take a Break \n Your Accuracy Was ' num2str(acc) '%'], ...
+    'center', 'center', [255 255 255]);
+Screen('Flip', window);
+WaitSecs(30);
+
+%% 屏幕2：30秒到，提示可以继续休息或按space开始，等待按键
+Screen('TextSize', window, 40);
+DrawFormattedText(window, ...
+    ['Your Accuracy Was ' num2str(acc) '%\n\n' ...
+     'You can keep resting.\n\n' ...
+     'Press SPACE whenever you are ready to continue.'], ...
+    'center', 'center', [255 255 255]);
+Screen('Flip', window);
+
+while KbCheck; end        % 清空残留按键
 while 1
     [keyIsDown, ~, keyCode] = KbCheck;
     keyCode = find(keyCode, 1);
@@ -678,13 +683,14 @@ while 1
     end
 end
 
-WaitSecs(0.1);
+%% 屏幕3：按space后显示"准备开始"，再按space正式开始
+WaitSecs(0.3);
 Screen('TextSize', window, 40);
-DrawFormattedText(window, 'Press the SPACE bar to Begin the Task', 'center', 'center', [255 255 255]);
-Screen('TextSize', window, 80);
+DrawFormattedText(window, 'Press the SPACE bar to Begin the Task', ...
+    'center', 'center', [255 255 255]);
 Screen('Flip', window);
-while KbCheck; end
 
+while KbCheck; end
 while 1
     [keyIsDown, ~, keyCode] = KbCheck;
     keyCode = find(keyCode, 1);

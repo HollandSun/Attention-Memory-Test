@@ -1,0 +1,242 @@
+{Unable to perform assignment with 0 elements on the right-hand side.
+
+Error in <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('AssertMex', '/Users/holland/MATLAB/Toolbox/Psychtoolbox/PsychOneliners/AssertMex.m', 130)" style="font-weight:bold">AssertMex</a> (<a href="matlab: opentoline('/Users/holland/MATLAB/Toolbox/Psychtoolbox/PsychOneliners/AssertMex.m',130,0)">line 130</a>)
+    extensionName=mexExtensions{extensionNameIndex}; %#ok<FNDSB>
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('Screen', '/Users/holland/MATLAB/Toolbox/Psychtoolbox/PsychBasic/Screen.m', 158)" style="font-weight:bold">Screen</a> (<a href="matlab: opentoline('/Users/holland/MATLAB/Toolbox/Psychtoolbox/PsychBasic/Screen.m',158,0)">line 158</a>)
+AssertMex('Screen.m');
+^^^^^^^^^^^^^^^^^^^^^
+Error in <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('Holland_Main', '/Users/holland/Documents/GitHub/Attention-Memory-Test/Holland_Main.m', 49)" style="font-weight:bold">Holland_Main</a> (<a href="matlab: opentoline('/Users/holland/Documents/GitHub/Attention-Memory-Test/Holland_Main.m',49,0)">line 49</a>)
+[window, windowRect] = Screen('OpenWindow', whichScreen, background);
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+} 
+Screen
+{Unable to perform assignment with 0 elements on the right-hand side.
+
+Error in <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('AssertMex', '/Users/holland/MATLAB/Toolbox/Psychtoolbox/PsychOneliners/AssertMex.m', 130)" style="font-weight:bold">AssertMex</a> (<a href="matlab: opentoline('/Users/holland/MATLAB/Toolbox/Psychtoolbox/PsychOneliners/AssertMex.m',130,0)">line 130</a>)
+    extensionName=mexExtensions{extensionNameIndex}; %#ok<FNDSB>
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('Screen', '/Users/holland/MATLAB/Toolbox/Psychtoolbox/PsychBasic/Screen.m', 158)" style="font-weight:bold">Screen</a> (<a href="matlab: opentoline('/Users/holland/MATLAB/Toolbox/Psychtoolbox/PsychBasic/Screen.m',158,0)">line 158</a>)
+AssertMex('Screen.m');
+^^^^^^^^^^^^^^^^^^^^^
+} 
+DownloadPsychtoolbox
+DownloadPsychtoolbox('/Applications','beta','', 0, 0)
+Requested flavor is: beta
+Requested location for the Psychtoolbox folder is inside: /Applications
+Using optimal client for subversion checkout.
+
+Good. Your privileges suffice for the requested installation into folder /Applications.
+
+Hmm. You already have an old Psychtoolbox folder:
+/Users/holland/MATLAB/Toolbox/Psychtoolbox
+That old Psychtoolbox should be removed before we install a new one.
+First we remove all references to "Psychtoolbox" from the MATLAB / OCTAVE path.
+Success.
+Shall I delete the old Psychtoolbox folder and all its contents 
+(recommended in most cases), (yes or no)? yes
+Now we delete "Psychtoolbox" itself.
+Success.
+
+I will now download the latest Psychtoolbox for OSX.
+Requested flavor is: beta
+Target folder for installation: /Applications
+Downloading via Matlabs integrated SVNKit: This can take multiple minutes.
+There may be no output to this window to indicate progress until the download is complete.
+Please be patient ...
+{Error during serialization
+} 
+Screen
+{Unrecognized function or variable 'Screen'.
+} 
+DownloadPsychtoolbox
+{Unrecognized function or variable 'DownloadPsychtoolbox'.
+} 
+PTB-WARNING: This is a Apple silicon based ARM M1 SoC or later with Apple proprietary gpu.
+PTB-WARNING: All of Psychtoolbox own timing and timestamping mechanisms will not work on
+PTB-WARNING: such a machine, leading to disastrously bad visual stimulus presentation timing
+PTB-WARNING: and timestamping. Do not trust or use this machine if timing is of any concern!
+PTB-WARNING: You may want to try enabling Psychtoolbox Vulkan display backend, after proper
+PTB-WARNING: configuration. See 'help PsychImaging' the section about the 'UseVulkanDisplay'
+PTB-WARNING: task, and 'help PsychHDR' for some more setup instructions for MoltenVK on macOS.
+PTB-WARNING: Note that this approach is completely unsupported by us in case of any problems, and
+PTB-WARNING: may just be as bad performance and timing-wise. It is completely untested on M1.
+PTB-INFO: Retina display. Enabling panel fitter for scaled Retina compatibility mode.
+
+
+PTB-INFO: This is Psychtoolbox-3 for Apple macOS, under Matlab 64-Bit (Version 3.0.19 - Build date: Aug 11 2024).
+PTB-INFO: OS support status: macOS version 16 ARM M1+ SoC is not yet tested or supported at all for this Psychtoolbox release..
+PTB-INFO: Type 'PsychtoolboxVersion' for more detailed version information.
+PTB-INFO: Most parts of the Psychtoolbox distribution are licensed to you under terms of the MIT License, with
+PTB-INFO: some restrictions. See file 'License.txt' in the Psychtoolbox root folder for the exact licensing conditions.
+
+PTB-INFO: For information about paid support, support memberships and other commercial services, please type
+PTB-INFO: 'PsychPaidSupportAndServices'.
+
+PTB-INFO: Using Cocoa + No display capture / compositor lockout for fullscreen window. Timing will be disastrous.
+
+
+PTB-INFO: OpenGL-Renderer is Apple :: Apple M1 Pro :: 2.1 Metal - 90.5
+PTB-INFO: Renderer has 12124 MB of VRAM and a maximum 12124 MB of texture memory.
+PTB-INFO: VBL startline = 2160 , VBL Endline = -1
+PTB-INFO: Beamposition queries unsupported or defective on this system. Using basic timestamping as fallback.
+PTB-INFO: Timestamps returned by Screen('Flip') will be therefore less robust and accurate.
+PTB-INFO: Measured monitor refresh interval from VBLsync = 7.777982 ms [128.568053 Hz]. (183 valid samples taken, stddev=0.677135 ms.)
+PTB-INFO: Reported monitor refresh interval from operating system = 8.333333 ms [120.000000 Hz].
+PTB-INFO: Small deviations between reported values are normal and no reason to worry.
+
+WARNING: Couldn't compute a reliable estimate of monitor refresh interval! Trouble with VBL syncing?!?
+
+
+----- ! PTB - ERROR: SYNCHRONIZATION FAILURE ! -----
+
+One or more internal checks (see Warnings above) indicate that synchronization
+of Psychtoolbox to the vertical retrace (VBL) is not working on your setup.
+
+This will seriously impair proper stimulus presentation and stimulus presentation timing!
+Please read 'help SyncTrouble' for information about how to solve or work-around the problem.
+You can force Psychtoolbox to continue, despite the severe problems, by adding the command
+Screen('Preference', 'SkipSyncTests', 1); at the top of your script, if you really know what you are doing.
+
+
+{Error using <a href="matlab:matlab.internal.language.introspective.errorDocCallback('Screen')" style="font-weight:bold">Screen</a>
+See error message printed above.
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('Holland_Main', '/Users/holland/Documents/GitHub/Attention-Memory-Test/Holland_Main.m', 49)" style="font-weight:bold">Holland_Main</a> (<a href="matlab: opentoline('/Users/holland/Documents/GitHub/Attention-Memory-Test/Holland_Main.m',49,0)">line 49</a>)
+[window, windowRect] = Screen('OpenWindow', whichScreen, background);
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('run', '/Applications/MATLAB_R2023a.app/toolbox/matlab/lang/run.m', 91)" style="font-weight:bold">run</a> (<a href="matlab: opentoline('/Applications/MATLAB_R2023a.app/toolbox/matlab/lang/run.m',91,0)">line 91</a>)
+evalin('caller', strcat(script, ';'));
+} 
+PTB-WARNING: This is a Apple silicon based ARM M1 SoC or later with Apple proprietary gpu.
+PTB-WARNING: All of Psychtoolbox own timing and timestamping mechanisms will not work on
+PTB-WARNING: such a machine, leading to disastrously bad visual stimulus presentation timing
+PTB-WARNING: and timestamping. Do not trust or use this machine if timing is of any concern!
+PTB-WARNING: You may want to try enabling Psychtoolbox Vulkan display backend, after proper
+PTB-WARNING: configuration. See 'help PsychImaging' the section about the 'UseVulkanDisplay'
+PTB-WARNING: task, and 'help PsychHDR' for some more setup instructions for MoltenVK on macOS.
+PTB-WARNING: Note that this approach is completely unsupported by us in case of any problems, and
+PTB-WARNING: may just be as bad performance and timing-wise. It is completely untested on M1.
+PTB-INFO: Retina display. Enabling panel fitter for scaled Retina compatibility mode.
+
+
+PTB-INFO: This is Psychtoolbox-3 for Apple macOS, under Matlab 64-Bit (Version 3.0.19 - Build date: Aug 11 2024).
+PTB-INFO: OS support status: macOS version 16 ARM M1+ SoC is not yet tested or supported at all for this Psychtoolbox release..
+PTB-INFO: Type 'PsychtoolboxVersion' for more detailed version information.
+PTB-INFO: Most parts of the Psychtoolbox distribution are licensed to you under terms of the MIT License, with
+PTB-INFO: some restrictions. See file 'License.txt' in the Psychtoolbox root folder for the exact licensing conditions.
+
+PTB-INFO: For information about paid support, support memberships and other commercial services, please type
+PTB-INFO: 'PsychPaidSupportAndServices'.
+
+PTB-INFO: Using Cocoa + No display capture / compositor lockout for fullscreen window. Timing will be disastrous.
+
+
+PTB-INFO: OpenGL-Renderer is Apple :: Apple M1 Pro :: 2.1 Metal - 90.5
+PTB-INFO: Renderer has 12124 MB of VRAM and a maximum 12124 MB of texture memory.
+PTB-INFO: VBL startline = 2160 , VBL Endline = -1
+PTB-INFO: Beamposition queries unsupported or defective on this system. Using basic timestamping as fallback.
+PTB-INFO: Timestamps returned by Screen('Flip') will be therefore less robust and accurate.
+PTB-INFO: Measured monitor refresh interval from VBLsync = 7.915959 ms [126.327078 Hz]. (192 valid samples taken, stddev=0.563999 ms.)
+PTB-INFO: Reported monitor refresh interval from operating system = 8.333333 ms [120.000000 Hz].
+PTB-INFO: Small deviations between reported values are normal and no reason to worry.
+
+WARNING: Couldn't compute a reliable estimate of monitor refresh interval! Trouble with VBL syncing?!?
+
+
+----- ! PTB - ERROR: SYNCHRONIZATION FAILURE ! -----
+
+One or more internal checks (see Warnings above) indicate that synchronization
+of Psychtoolbox to the vertical retrace (VBL) is not working on your setup.
+
+This will seriously impair proper stimulus presentation and stimulus presentation timing!
+Please read 'help SyncTrouble' for information about how to solve or work-around the problem.
+You can force Psychtoolbox to continue, despite the severe problems, by adding the command
+Screen('Preference', 'SkipSyncTests', 1); at the top of your script, if you really know what you are doing.
+
+
+{Error using <a href="matlab:matlab.internal.language.introspective.errorDocCallback('Screen')" style="font-weight:bold">Screen</a>
+See error message printed above.
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('Holland_Main', '/Users/holland/Documents/GitHub/Attention-Memory-Test/Holland_Main.m', 49)" style="font-weight:bold">Holland_Main</a> (<a href="matlab: opentoline('/Users/holland/Documents/GitHub/Attention-Memory-Test/Holland_Main.m',49,0)">line 49</a>)
+[window, windowRect] = Screen('OpenWindow', whichScreen, background);
+} 
+Holland_Main
+Enter Subject Number: 999
+Enter Version Number (1=SHHS, 2=HSSH, 3=SHSH, 4=HSHS): 1
+PTB-INFO: Retina display. Enabling panel fitter for scaled Retina compatibility mode.
+
+
+PTB-INFO: This is Psychtoolbox-3 for Apple macOS, under Matlab 64-Bit (Version 3.0.19 - Build date: Aug 11 2024).
+PTB-INFO: OS support status: macOS version 16 ARM M1+ SoC is not yet tested or supported at all for this Psychtoolbox release..
+PTB-INFO: Type 'PsychtoolboxVersion' for more detailed version information.
+PTB-INFO: Most parts of the Psychtoolbox distribution are licensed to you under terms of the MIT License, with
+PTB-INFO: some restrictions. See file 'License.txt' in the Psychtoolbox root folder for the exact licensing conditions.
+
+PTB-INFO: For information about paid support, support memberships and other commercial services, please type
+PTB-INFO: 'PsychPaidSupportAndServices'.
+
+PTB-INFO: Using Cocoa + No display capture / compositor lockout for fullscreen window. Timing will be disastrous.
+
+
+PTB-INFO: OpenGL-Renderer is Apple :: Apple M1 Pro :: 2.1 Metal - 90.5
+PTB-INFO: Renderer has 12124 MB of VRAM and a maximum 12124 MB of texture memory.
+PTB-INFO: VBL startline = 2160 , VBL Endline = -1
+PTB-INFO: Beamposition queries unsupported or defective on this system. Using basic timestamping as fallback.
+PTB-INFO: Timestamps returned by Screen('Flip') will be therefore less robust and accurate.
+PTB-INFO: Measured monitor refresh interval from VBLsync = 8.106954 ms [123.350888 Hz]. (50 valid samples taken, stddev=0.552515 ms.)
+PTB-INFO: Reported monitor refresh interval from operating system = 8.333333 ms [120.000000 Hz].
+PTB-INFO: Small deviations between reported values are normal and no reason to worry.
+PTB-WARNING: ==================================================================================================================
+PTB-WARNING: DESKTOP COMPOSITOR IS ACTIVE! ALL FLIP STIMULUS ONSET TIMESTAMPS WILL BE VERY LIKELY UNRELIABLE AND LESS ACCURATE!
+PTB-WARNING: STIMULUS ONSET TIMING WILL BE UNRELIABLE AS WELL, AND GRAPHICS PERFORMANCE MAY BE REDUCED!
+PTB-WARNING: DO NOT USE THIS MODE FOR RUNNING REAL EXPERIMENT SESSIONS WITH ANY REQUIREMENTS FOR ACCURATE TIMING!
+PTB-WARNING: ==================================================================================================================
+
+WARNING: Couldn't compute a reliable estimate of monitor refresh interval! Trouble with VBL syncing?!?
+
+
+----- ! PTB - ERROR: SYNCHRONIZATION FAILURE ! -----
+
+One or more internal checks (see Warnings above) indicate that synchronization
+of Psychtoolbox to the vertical retrace (VBL) is not working on your setup.
+
+This will seriously impair proper stimulus presentation and stimulus presentation timing!
+Please read 'help SyncTrouble' for information about how to solve or work-around the problem.
+You can force Psychtoolbox to continue, despite the severe problems, by adding the command
+Screen('Preference', 'SkipSyncTests', 1); at the top of your script, if you really know what you are doing.
+
+
+{Error using <a href="matlab:matlab.internal.language.introspective.errorDocCallback('Screen')" style="font-weight:bold">Screen</a>
+See error message printed above.
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('Holland_Main', '/Users/holland/Documents/GitHub/Attention-Memory-Test/Holland_Main.m', 49)" style="font-weight:bold">Holland_Main</a> (<a href="matlab: opentoline('/Users/holland/Documents/GitHub/Attention-Memory-Test/Holland_Main.m',49,0)">line 49</a>)
+[window, windowRect] = Screen('OpenWindow', whichScreen, background);
+} 
+Holland_Main
+Enter Subject Number: 999
+Enter Version Number (1=SHHS, 2=HSSH, 3=SHSH, 4=HSHS): 1
+
+
+PTB-INFO: This is Psychtoolbox-3 for Apple macOS, under Matlab 64-Bit (Version 3.0.19 - Build date: Aug 11 2024).
+PTB-INFO: OS support status: macOS version 16 ARM M1+ SoC is not yet tested or supported at all for this Psychtoolbox release..
+PTB-INFO: Type 'PsychtoolboxVersion' for more detailed version information.
+PTB-INFO: Most parts of the Psychtoolbox distribution are licensed to you under terms of the MIT License, with
+PTB-INFO: some restrictions. See file 'License.txt' in the Psychtoolbox root folder for the exact licensing conditions.
+
+PTB-INFO: For information about paid support, support memberships and other commercial services, please type
+PTB-INFO: 'PsychPaidSupportAndServices'.
+
+PTB-INFO: Using Cocoa + No display capture / compositor lockout for fullscreen window. Timing will be disastrous.
+
+PTB-ERROR[ChoosePixelFormat failed: invalid display]: Reason unknown. There could be insufficient video memory or a driver malfunction. Giving up.
+
+
+PTB-ERROR[Low-Level setup of window failed]:The specified gpu + display + gfx-driver combo may not support some requested feature.
+
+{Error using <a href="matlab:matlab.internal.language.introspective.errorDocCallback('Screen')" style="font-weight:bold">Screen</a>
+See error message printed above.
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('Holland_Main', '/Users/holland/Documents/GitHub/Attention-Memory-Test/Holland_Main.m', 49)" style="font-weight:bold">Holland_Main</a> (<a href="matlab: opentoline('/Users/holland/Documents/GitHub/Attention-Memory-Test/Holland_Main.m',49,0)">line 49</a>)
+[window, windowRect] = Screen('OpenWindow', whichScreen, background);
+} 
