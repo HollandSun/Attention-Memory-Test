@@ -8,9 +8,9 @@ n_noise  = 240;    % noise numbersss
 
 raw_dir  = 'AnimacySize';          % rawimages
 
-target_dir = 'stimuli/target_images'; % output target
-cue_dir  = 'stimuli/cue_images';  % output cue
-noise_dir   = 'stimuli/noise_images';% output noise
+target_dir = 'InstructionSti/target_images'; % output target
+cue_dir  = 'InstructionSti/cue_images';  % output cue
+noise_dir   = 'InstructionSti/noise_images';% output noise
 
 % ---- Grayscale switches ----
 % 'both'   : noise and cue are both grayscale
