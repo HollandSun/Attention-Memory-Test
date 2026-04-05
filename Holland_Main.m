@@ -108,7 +108,7 @@ for run = 1:4
 
     % begin
     Screen('TextSize', window, 40);
-    DrawFormattedText(window, 'Press the SPACE bar to Begin the Task', 'center', 'center', [0 0 0]);
+    DrawFormattedText(window, 'Press the SPACE bar to Begin the Task', 'center', 'center', [255 255 255]);
     Screen('Flip', window);
 
     while KbCheck; end  % 先等所有按键松开，防止之前按着的键被误读
@@ -148,7 +148,7 @@ for run = 1:4
         acc = 0;
     end
 
-    DrawFormattedText(window, ['Your Accuracy Was ' num2str(acc) '%'], 'center', 'center', [0 0 0]);
+    DrawFormattedText(window, ['Your Accuracy Was ' num2str(acc) '%'], 'center', 'center', [255 255 255]);
     Screen('Flip', window);
     WaitSecs(4);
 
@@ -552,13 +552,13 @@ function p = PreStim(window, p)
 % PreStim  asterisk
 
 if p.StartingLocations(p.trial) == 1
-    DrawFormattedText(window, ' * ', 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, p.loc1);
+    DrawFormattedText(window, ' * ', 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.loc1);
 elseif p.StartingLocations(p.trial) == 2
-    DrawFormattedText(window, ' * ', 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, p.loc2);
+    DrawFormattedText(window, ' * ', 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.loc2);
 end
-DrawFormattedText(window, ' + ', 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, p.center);
+DrawFormattedText(window, ' + ', 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.center);
 p.prevFlip   = Screen('Flip', window, p.prevFlip + 0.5 - p.slack);
-DrawFormattedText(window, ' + ', 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, p.center);
+DrawFormattedText(window, ' + ', 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.center);
 p.prevFlip   = Screen('Flip', window, p.prevFlip + 0.25 - p.slack);
 p.streamFlip = p.prevFlip + 0.25;
 end
@@ -591,11 +591,11 @@ for framenum = 1:length(p.Location1{t})
         [p, noise2] = GetNoiseTex(p);
         Screen('DrawTexture', window, noise1, [], p.dstRect1);   % noise底层
         Screen('DrawTexture', window, noise2, [], p.dstRect2);
-        DrawFormattedText(window, num2str(val1), 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, p.loc1);  % 数字叠加
-        DrawFormattedText(window, num2str(val2), 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, p.loc2);
+        DrawFormattedText(window, num2str(val1), 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.loc1);  % 数字叠加
+        DrawFormattedText(window, num2str(val2), 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.loc2);
     end
 
-    DrawFormattedText(window, ' + ', 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, p.center);
+    DrawFormattedText(window, ' + ', 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.center);
 
     % flip
     % cue帧用CueFrameTime，其余帧用FrameTime
@@ -620,7 +620,7 @@ for framenum = 1:length(p.Location1{t})
     end
 end
 
-DrawFormattedText(window, ' + ', 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, p.center);
+DrawFormattedText(window, ' + ', 'center', 'center', [255 255 255], 10, 0, 0, 1, 0, p.center);
 p.prevFlip = Screen('Flip', window, p.streamFlip - p.slack);
 KbQueueStop(p.ind);
 
@@ -669,7 +669,7 @@ DrawFormattedText(window, ...
     ['Your Accuracy Was ' num2str(acc) '%\n\n' ...
      'You can keep resting.\n\n' ...
      'Press SPACE whenever you are ready to continue.'], ...
-    'center', 'center', [0 0 0]);
+    'center', 'center', [255 255 255]);
 Screen('Flip', window);
 
 while KbCheck; end        % 清空残留按键
