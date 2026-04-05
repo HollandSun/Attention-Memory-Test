@@ -1,22 +1,7 @@
 function AttentionShift_Practice
 % AttentionShift_Practice
 %
-% 单一 block，30 trials，15 shift + 15 hold 随机穿插
-%
-% Trial 1-6  固定顺序 [S H S H S H]
-%            shift 依次用 cue_A1/A2/A3，hold 依次用 cue_N1/N2/N3
-%            每个 trial 做完 → 详细分步反馈 → 按空格继续
-%
-% Trial 7-30 12 shift + 12 hold 随机穿插
-%            shift 从 cue_A4~A10 池随机抽（with replacement）
-%            hold  从 cue_N4~N10 池随机抽（with replacement）
-%            做完 → 简单 Correct/Incorrect 反馈（1 秒自动继续）
-%
-% Fix 点位置规则（与主任务一致）：
-%   - Trial 1：随机左/右
-%   - Trial t：fix_side(t) = correct_side(t-1)
-%   - cue 出现在 fix 点那侧
-%   - shift → correct_side 翻到对侧；hold → correct_side 留在同侧
+% 单一 block，20 trials，10 shift + 10 hold 随机穿插
 %
 % 按键：z = 奇数，m = 偶数，q = 随时退出
 
@@ -28,12 +13,16 @@ s = input('Enter Subject Number: ');
 %% =========================================================
 %  参数
 %% =========================================================
-N_TRIALS      = 30;
+N_TRIALS      = 20;
 N_GUIDED      = 6;
 img_size      = 256;
 FRAME_RATE    = 4;
 FRAME_TIME_MS = 1000 / FRAME_RATE;   % 250 ms
 CUE_FRAME_MS  = 250;                 % ms
+
+% 颜色（与主任务一致）
+BG_COLOR   = [128 128 128];   % 灰色背景
+TEXT_COLOR = [255 255 255];   % 白色文字
 
 %% =========================================================
 %  路径
@@ -60,14 +49,13 @@ for t = 1:N_GUIDED
     end
 end
 
-% --- Trial 7-30：12 shift + 12 hold 随机穿插 ---
-n_remain_shift = 15 - 3;   % 12
-n_remain_hold  = 15 - 3;   % 12
+% --- Trial 7-20：7 shift + 7 hold 随机穿插 ---
+n_remain_shift = 10 - 3;   % 7
+n_remain_hold  = 10 - 3;   % 7
 
-shift_pool = arrayfun(@(n) sprintf('cue_A%d.png', n), 4:10, 'UniformOutput', false); % 7张
-hold_pool  = arrayfun(@(n) sprintf('cue_N%d.png', n), 4:10, 'UniformOutput', false); % 7张
+shift_pool = arrayfun(@(n) sprintf('cue_A%d.png', n), 4:10, 'UniformOutput', false);
+hold_pool  = arrayfun(@(n) sprintf('cue_N%d.png', n), 4:10, 'UniformOutput', false);
 
-% with replacement 随机抽取
 shift_pick = shift_pool(mod(Shuffle(0:n_remain_shift-1), numel(shift_pool)) + 1);
 hold_pick  = hold_pool( mod(Shuffle(0:n_remain_hold-1),  numel(hold_pool))  + 1);
 
@@ -83,30 +71,26 @@ for t = 1:(N_TRIALS - N_GUIDED)
 end
 
 % --- 合并 ---
-all_cue_type  = [guided_cue_type,  remain_cue_type];   % 1×30
-all_cue_files = [guided_files,     remain_files];       % 1×30 cell
+all_cue_type  = [guided_cue_type,  remain_cue_type];
+all_cue_files = [guided_files,     remain_files];
 
 %% =========================================================
 %  Fix 点 / cue 侧 / correct 侧
-%  规则：fix_side(1) 随机
-%        fix_side(t) = correct_side(t-1)   t>=2
-%        cue 出现在 fix_side 那侧
-%        shift → correct_side = 对侧，hold → correct_side = 同侧
 %% =========================================================
 fix_side     = zeros(1, N_TRIALS);
 cue_side     = zeros(1, N_TRIALS);
 correct_side = zeros(1, N_TRIALS);
 
-fix_side(1) = randi(2);   % Trial 1 随机
+fix_side(1) = randi(2);
 for t = 1:N_TRIALS
-    cue_side(t) = fix_side(t);               % cue 出现在 fix 那侧
-    if all_cue_type(t) == 2                  % shift：翻转
+    cue_side(t) = fix_side(t);
+    if all_cue_type(t) == 2
         correct_side(t) = 3 - fix_side(t);
-    else                                     % hold：保持
+    else
         correct_side(t) = fix_side(t);
     end
     if t < N_TRIALS
-        fix_side(t+1) = correct_side(t);     % 下一个 trial 的 fix = 本 trial correct_side
+        fix_side(t+1) = correct_side(t);
     end
 end
 
@@ -114,13 +98,13 @@ end
 %  dist interval / 奇偶分配
 %% =========================================================
 dist_interval = randi(3, 1, N_TRIALS);
-resp_parity   = Shuffle([ones(1, N_TRIALS/2), ones(1, N_TRIALS/2)*2]);  % 1=奇(z), 2=偶(m)
+resp_parity   = Shuffle([ones(1, N_TRIALS/2), ones(1, N_TRIALS/2)*2]);
 
 %% =========================================================
 %  PTB 初始化
 %% =========================================================
 KbName('UnifyKeyNames');
-[window, windowRect] = Screen('OpenWindow', 0, [128 128 128]);
+[window, windowRect] = Screen('OpenWindow', 0, BG_COLOR);
 HideCursor(window);
 slack = Screen('GetFlipInterval', window) / 2;
 
@@ -182,7 +166,7 @@ for t = 1:N_TRIALS
 end
 
 %% =========================================================
-%  构建每个 trial 的 Location 流（与主任务逻辑一致）
+%  构建每个 trial 的 Location 流
 %% =========================================================
 correct_digit = zeros(1, N_TRIALS);
 Location1     = cell(1, N_TRIALS);
@@ -200,13 +184,11 @@ for t = 1:N_TRIALS
     L1 = zeros(1, total_len);
     L2 = zeros(1, total_len);
 
-    % 预 cue noise 帧
     for f = 1:n_pre
         [noisePool, noisePoolIdx, L1(f)] = nextNoise(noiseTex, noisePool, noisePoolIdx);
         [noisePool, noisePoolIdx, L2(f)] = nextNoise(noiseTex, noisePool, noisePoolIdx);
     end
 
-    % cue 帧：cue 在 cue_side 那侧，另一侧 noise（不与前一帧重复）
     [noisePool, noisePoolIdx, nc] = nextNoise(noiseTex, noisePool, noisePoolIdx);
     if cue_side(t) == 1
         while n_pre >= 1 && nc == L2(n_pre)
@@ -222,7 +204,6 @@ for t = 1:N_TRIALS
         L1(cue_frame) = nc;
     end
 
-    % response window
     if resp_parity(t) == 1
         RDig = [1 3 5 7];
     else
@@ -258,9 +239,9 @@ DrawFormattedText(window, ...
      '  OBJECT image  (cue)  ->  HOLD attention on the SAME side\n\n' ...
      'Then judge the number on the attended side:\n' ...
      '  Z  =  ODD     M  =  EVEN\n\n' ...
-     'The first 6 trials include detailed step-by-step feedback.\n' ...
+     'The first 6 trials will show you the correct answer.\n' ...
      'Press SPACE to begin.'], ...
-    'center', 'center', [0 0 0]);
+    'center', 'center', TEXT_COLOR);
 Screen('Flip', window);
 waitForSpace();
 
@@ -282,15 +263,15 @@ streamFlip = prevFlip;
 %% =========================================================
 for trial = 1:N_TRIALS
 
-    % --- PreStim：asterisk（上一个 correct 侧）+ 注视十字 ---
+    % --- PreStim：asterisk + 注视十字（白色）---
     if fix_side(trial) == 1
-        DrawFormattedText(window, ' * ', 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, loc1);
+        DrawFormattedText(window, ' * ', 'center', 'center', TEXT_COLOR, 10, 0, 0, 1, 0, loc1);
     else
-        DrawFormattedText(window, ' * ', 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, loc2);
+        DrawFormattedText(window, ' * ', 'center', 'center', TEXT_COLOR, 10, 0, 0, 1, 0, loc2);
     end
-    DrawFormattedText(window, ' + ', 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, center);
+    DrawFormattedText(window, ' + ', 'center', 'center', TEXT_COLOR, 10, 0, 0, 1, 0, center);
     prevFlip   = Screen('Flip', window, prevFlip + 0.5 - slack);
-    DrawFormattedText(window, ' + ', 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, center);
+    DrawFormattedText(window, ' + ', 'center', 'center', TEXT_COLOR, 10, 0, 0, 1, 0, center);
     prevFlip   = Screen('Flip', window, prevFlip + 0.25 - slack);
     streamFlip = prevFlip + 0.25;
 
@@ -302,21 +283,18 @@ for trial = 1:N_TRIALS
         v2 = L2(f);
 
         if f <= CueStart(trial)
-            % noise 帧 & cue 帧：直接画 texture
             Screen('DrawTexture', window, v1, [], dstRect1);
             Screen('DrawTexture', window, v2, [], dstRect2);
         else
-            % response window：noise 底层 + 数字叠加
             [noisePool, noisePoolIdx, n1] = nextNoise(noiseTex, noisePool, noisePoolIdx);
             [noisePool, noisePoolIdx, n2] = nextNoise(noiseTex, noisePool, noisePoolIdx);
             Screen('DrawTexture', window, n1, [], dstRect1);
             Screen('DrawTexture', window, n2, [], dstRect2);
-            DrawFormattedText(window, num2str(v1), 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, loc1);
-            DrawFormattedText(window, num2str(v2), 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, loc2);
+            DrawFormattedText(window, num2str(v1), 'center', 'center', TEXT_COLOR, 10, 0, 0, 1, 0, loc1);
+            DrawFormattedText(window, num2str(v2), 'center', 'center', TEXT_COLOR, 10, 0, 0, 1, 0, loc2);
         end
-        DrawFormattedText(window, ' + ', 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, center);
+        DrawFormattedText(window, ' + ', 'center', 'center', TEXT_COLOR, 10, 0, 0, 1, 0, center);
 
-        % Flip timing
         if f == CueStart(trial)
             [CueOnset_VBL(trial),~,~,~] = Screen('Flip', window, streamFlip - slack);
             streamFlip = CueOnset_VBL(trial) + CUE_FRAME_MS * 0.001;
@@ -331,13 +309,12 @@ for trial = 1:N_TRIALS
     end
 
     % blank，收集反应
-    DrawFormattedText(window, ' + ', 'center', 'center', [0 0 0], 10, 0, 0, 1, 0, center);
+    DrawFormattedText(window, ' + ', 'center', 'center', TEXT_COLOR, 10, 0, 0, 1, 0, center);
     prevFlip = Screen('Flip', window, streamFlip - slack);
     KbQueueStop(kb_ind);
 
     [Responded, firstpress] = KbQueueCheck(kb_ind);
-    is_correct  = 0;
-    pressed_key = 0;
+    is_correct = 0;
 
     if Responded
         pressed_key = find(firstpress == min(firstpress(firstpress~=0)), 1);
@@ -358,15 +335,47 @@ for trial = 1:N_TRIALS
 
     WaitSecs(0.1);
 
-    % ---- 反馈 ----
+    % ================ 反馈 ================
     if trial <= N_GUIDED
-        % 详细分步反馈，按空格继续
-        showDetailedFeedback(window, trial, ...
-            fix_side(trial), cue_side(trial), all_cue_type(trial), all_cue_files{trial}, ...
-            correct_side(trial), correct_digit(trial), resp_parity(trial), ...
-            is_correct, Responded);
+        % Trial 1-6：显示 "数字为 X，按 X" + 正确/错误，按空格继续
+        key_str = ternary(resp_parity(trial) == 1, 'Z', 'M');
+
+        if is_correct
+            result_line  = 'CORRECT';
+            result_color = [0 180 0];
+        elseif ~Responded
+            result_line  = 'No Response';
+            result_color = [220 120 0];
+        else
+            result_line  = 'INCORRECT';
+            result_color = [210 0 0];
+        end
+
+        Screen('TextSize', window, 40);
+        msg = sprintf(['%s\n\n' ...
+                        'The correct number was  %d\n' ...
+                        'Press  %s\n\n' ...
+                        'Press SPACE to continue.'], ...
+                        result_line, correct_digit(trial), key_str);
+        DrawFormattedText(window, msg, 'center', 'center', result_color);
+        Screen('Flip', window);
+        waitForSpace();
+
+        % --- Trial 6 结束后：过渡提示 ---
+        if trial == N_GUIDED
+            Screen('TextSize', window, 36);
+            DrawFormattedText(window, ...
+                ['Guided practice is over.\n\n' ...
+                 'From now on, you will only see\n' ...
+                 'Correct / Incorrect feedback.\n\n' ...
+                 'Press SPACE to continue.'], ...
+                'center', 'center', TEXT_COLOR);
+            Screen('Flip', window);
+            waitForSpace();
+        end
+
     else
-        % 简单反馈，1 秒
+        % Trial 7-20：Correct / Incorrect，1 秒自动继续
         Screen('TextSize', window, 52);
         if ~Responded
             DrawFormattedText(window, 'No Response', 'center', 'center', [220 120 0]);
@@ -396,10 +405,9 @@ acc = ceil(mean(Accurate) * 100);
 Screen('TextSize', window, 36);
 DrawFormattedText(window, ...
     ['Practice complete!   Accuracy: ' num2str(acc) '%\n\n\n' ...
-     'In the main task, there will be no step-by-step guidance.\n' ...
-     'You will only see a brief Correct / Incorrect feedback after each trial.\n\n' ...
+     'In the main task, there will be no feedback.\n\n' ...
      'Press SPACE to continue to the main task.'], ...
-    'center', 'center', [0 0 0]);
+    'center', 'center', TEXT_COLOR);
 Screen('Flip', window);
 waitForSpace();
 
@@ -410,18 +418,18 @@ if ~exist('Data', 'dir'), mkdir('Data'); end
 prac.SubjectID      = s;
 prac.Date           = datetime;
 prac.N_TRIALS       = N_TRIALS;
-prac.Accurate       = Accurate;          % 1×30 逐trial准确率
-prac.ResponseButton = RespButton;        % 按键 keyCode
-prac.RT_raw         = RT_raw;            % 绝对时间
-prac.RT_subtracted  = RT_sub;            % 相对 target onset
-prac.CueType        = all_cue_type;      % 2=shift, 1=hold
-prac.CueFilenames   = all_cue_files;     % 实际使用的 cue 文件名
-prac.FixSide        = fix_side;          % 1=left, 2=right
-prac.CueSide        = cue_side;          % cue 出现侧
-prac.CorrectSide    = correct_side;      % 正确反应侧
-prac.ResponseParity = resp_parity;       % 1=odd(z), 2=even(m)
-prac.CorrectDigit   = correct_digit;     % 正确数字
-prac.DistInterval   = dist_interval;     % 1/2/3 frames
+prac.Accurate       = Accurate;
+prac.ResponseButton = RespButton;
+prac.RT_raw         = RT_raw;
+prac.RT_subtracted  = RT_sub;
+prac.CueType        = all_cue_type;
+prac.CueFilenames   = all_cue_files;
+prac.FixSide        = fix_side;
+prac.CueSide        = cue_side;
+prac.CorrectSide    = correct_side;
+prac.ResponseParity = resp_parity;
+prac.CorrectDigit   = correct_digit;
+prac.DistInterval   = dist_interval;
 prac.CueOnset_VBL   = CueOnset_VBL;
 prac.TargOnset_VBL  = TargOnset_VBL;
 
@@ -433,70 +441,9 @@ end
 
 
 %% =========================================================
-%  详细反馈（Trial 1-6）
-%% =========================================================
-function showDetailedFeedback(window, trial, ...
-    fix_side, cue_side, cue_type, cue_fname, ...
-    correct_side, correct_digit_val, resp_parity, ...
-    is_correct, responded)
-
-fix_str     = ternary(fix_side == 1,     'LEFT', 'RIGHT');
-cue_str     = ternary(cue_side == 1,     'LEFT', 'RIGHT');
-correct_str = ternary(correct_side == 1, 'LEFT', 'RIGHT');
-parity_str  = ternary(resp_parity == 1,  'ODD',  'EVEN');
-key_str     = ternary(resp_parity == 1,  'Z',    'M');
-
-if cue_type == 2
-    cue_label  = 'ANIMAL';
-    action_str = ['-> ANIMAL cue: SHIFT attention to the ' correct_str ' side'];
-else
-    cue_label  = 'OBJECT';
-    action_str = ['-> OBJECT cue: HOLD attention on the ' correct_str ' side'];
-end
-
-if is_correct
-    result_str = 'CORRECT  :)';
-    txt_color  = [0 150 0];
-elseif ~responded
-    result_str = 'No Response (too slow)';
-    txt_color  = [200 110 0];
-else
-    result_str = 'INCORRECT  :(';
-    txt_color  = [200 0 0];
-end
-
-msg = sprintf([...
-    '[ Guided Trial %d / 6 ]\n\n'                                                          ...
-    'Step 1  The fixation asterisk ( * ) appeared on the %s side.\n'                       ...
-    '        -> Your attention started on the %s side.\n\n'                                ...
-    'Step 2  The cue appeared on the %s side and it was an %s image  ( %s )\n'             ...
-    '        %s\n\n'                                                                        ...
-    'Step 3  On the %s side, the number was  %d  which is %s.\n'                           ...
-    '        -> Correct key:  %s\n\n'                                                      ...
-    'Result: %s\n\n'                                                                        ...
-    'Press SPACE to continue.'], ...
-    trial, ...
-    fix_str, fix_str, ...
-    cue_str, cue_label, cue_fname, action_str, ...
-    correct_str, correct_digit_val, parity_str, key_str, ...
-    result_str);
-
-Screen('FillRect', window, [128 128 128]);
-Screen('TextSize', window, 28);
-DrawFormattedText(window, msg, 'center', 'center', txt_color);
-Screen('Flip', window);
-
-waitForSpace();
-Screen('Flip', window);
-WaitSecs(0.2);
-end
-
-
-%% =========================================================
 %  Helpers
 %% =========================================================
 function [pool, idx, tex] = nextNoise(textures, pool, idx)
-% 从 shuffle 池取下一张 noise，耗尽时自动 reshuffle（首尾不重复）
 if idx > length(pool)
     last = pool(end);
     pool = Shuffle(1:length(textures));
