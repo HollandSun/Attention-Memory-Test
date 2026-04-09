@@ -657,13 +657,7 @@ end
 
 
 function p = TakeBreak(window, p)
-% TakeBreak
-
-acc = ceil(mean(p.Accurate) * 100);
-fprintf('Accuracy: %d\n', acc);
-
-
-%% 屏幕1：30秒到，提示可以继续休息或按space开始，等待按键
+% ==============================% TakeBreak
 Screen('TextSize', window, 40);
 DrawFormattedText(window, ...
     ['Your Accuracy Was ' num2str(acc) '%\n\n' ...
@@ -689,4 +683,4 @@ end
 % /\_/\\
 %( o.o )    MATLAB is watching you...
 % > ^ <
-% ==================================================
+====================
